@@ -926,7 +926,7 @@ async function loadUsers() {
       <td class="file-name">${escHtml(u.username)}</td>
       <td>${escHtml(u.name)}</td>
       <td><span style="font-family:var(--mono);font-size:10px;text-transform:uppercase;padding:2px 6px;background:var(--bg3);border:1px solid var(--border2)">${u.role}</span></td>
-      <td>${u.id != 1 ? `<button class="btn-danger" onclick="deleteUser(${u.id})">Remove</button>` : '—'}</td>
+      <td>`<button class="btn-danger" onclick="deleteUser(${u.id})">Remove</button>`</td>
     </tr>`).join('');
 }
 
