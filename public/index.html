@@ -1,0 +1,991 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EDI Exchange Portal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ═══ RESET & BASE ═══════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:       #0a0c0f;
+  --bg2:      #111318;
+  --bg3:      #181c24;
+  --border:   #232830;
+  --border2:  #2e3540;
+  --text:     #d4dae6;
+  --text2:    #7a8499;
+  --text3:    #4a5568;
+  --accent:   #00d4aa;
+  --accent2:  #0098d4;
+  --warn:     #f59e0b;
+  --danger:   #ef4444;
+  --success:  #10b981;
+  --mono:     'IBM Plex Mono', monospace;
+  --sans:     'IBM Plex Sans', sans-serif;
+}
+html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; }
+a { color: var(--accent); text-decoration: none; }
+button { cursor: pointer; font-family: var(--sans); }
+input, select, textarea { font-family: var(--sans); }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg2); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ═══ LOGIN SCREEN ═══════════════════════════════════════════════════════════ */
+#login-screen {
+  position: fixed; inset: 0; background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+}
+.login-box {
+  width: 380px; padding: 48px 40px;
+  background: var(--bg2); border: 1px solid var(--border);
+  position: relative; overflow: hidden;
+}
+.login-box::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+}
+.login-logo {
+  display: flex; align-items: center; gap: 12px; margin-bottom: 32px;
+}
+.login-logo-icon {
+  width: 40px; height: 40px; background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-weight: 600; font-size: 16px; color: var(--bg);
+}
+.login-logo-text { font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em; color: var(--text2); text-transform: uppercase; line-height: 1.4; }
+.login-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
+.login-sub { font-size: 12px; color: var(--text2); margin-bottom: 28px; font-family: var(--mono); }
+.form-group { margin-bottom: 16px; }
+.form-group label { display: block; font-size: 11px; font-family: var(--mono); letter-spacing: 0.1em; color: var(--text2); text-transform: uppercase; margin-bottom: 6px; }
+.form-group input {
+  width: 100%; padding: 10px 14px;
+  background: var(--bg3); border: 1px solid var(--border2); color: var(--text);
+  font-family: var(--mono); font-size: 13px; outline: none;
+  transition: border-color 0.2s;
+}
+.form-group input:focus { border-color: var(--accent); }
+.btn-login {
+  width: 100%; padding: 12px; margin-top: 8px;
+  background: var(--accent); color: var(--bg); border: none;
+  font-family: var(--mono); font-weight: 600; font-size: 13px; letter-spacing: 0.08em;
+  text-transform: uppercase; transition: opacity 0.2s;
+}
+.btn-login:hover { opacity: 0.85; }
+.login-error { color: var(--danger); font-family: var(--mono); font-size: 11px; margin-top: 10px; text-align: center; }
+.scan-lines {
+  position: absolute; inset: 0; pointer-events: none; opacity: 0.03;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 4px);
+}
+
+/* ═══ APP SHELL ══════════════════════════════════════════════════════════════ */
+#app { display: none; height: 100vh; flex-direction: column; }
+#app.visible { display: flex; }
+
+/* ─── Top bar ─────────────────────────────────────────────────────────────── */
+.topbar {
+  height: 52px; background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; padding: 0 20px; gap: 16px; flex-shrink: 0;
+  position: relative;
+}
+.topbar::after {
+  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
+  background: linear-gradient(90deg, var(--accent2), var(--accent), transparent);
+}
+.topbar-logo { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: var(--accent); }
+.topbar-sep { color: var(--border2); }
+.topbar-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: var(--text2); text-transform: uppercase; }
+.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
+.user-badge {
+  display: flex; align-items: center; gap: 8px;
+  padding: 4px 10px; background: var(--bg3); border: 1px solid var(--border);
+  font-family: var(--mono); font-size: 11px; color: var(--text2);
+}
+.user-badge .role-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+.btn-sm {
+  padding: 5px 12px; background: transparent; border: 1px solid var(--border2);
+  color: var(--text2); font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
+  text-transform: uppercase; transition: all 0.2s;
+}
+.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
+.topbar-time { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+
+/* ─── Layout ─────────────────────────────────────────────────────────────── */
+.layout { display: flex; flex: 1; overflow: hidden; }
+
+/* ─── Sidebar ────────────────────────────────────────────────────────────── */
+.sidebar {
+  width: 220px; background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
+}
+.sidebar-section { padding: 20px 0; border-bottom: 1px solid var(--border); }
+.sidebar-label {
+  padding: 0 16px 8px; font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.15em; text-transform: uppercase; color: var(--text3);
+}
+.nav-item {
+  display: flex; align-items: center; gap: 10px; padding: 9px 16px;
+  cursor: pointer; transition: all 0.15s; border-left: 2px solid transparent;
+  font-size: 13px; color: var(--text2);
+}
+.nav-item:hover { background: var(--bg3); color: var(--text); }
+.nav-item.active { background: var(--bg3); color: var(--accent); border-left-color: var(--accent); }
+.nav-icon { font-family: var(--mono); font-size: 11px; width: 20px; text-align: center; color: var(--text3); }
+.nav-item.active .nav-icon { color: var(--accent); }
+.nav-badge {
+  margin-left: auto; background: var(--accent); color: var(--bg);
+  font-family: var(--mono); font-size: 10px; font-weight: 600;
+  padding: 1px 6px; min-width: 20px; text-align: center;
+}
+.nav-badge.warn { background: var(--warn); }
+
+/* ─── Main content ───────────────────────────────────────────────────────── */
+.main { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* ─── Page header ────────────────────────────────────────────────────────── */
+.page-header { margin-bottom: 24px; }
+.page-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+.page-sub { font-family: var(--mono); font-size: 11px; color: var(--text2); }
+
+/* ─── Cards ──────────────────────────────────────────────────────────────── */
+.card {
+  background: var(--bg2); border: 1px solid var(--border); padding: 20px;
+  margin-bottom: 16px;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
+}
+.card-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
+
+/* ─── Stats grid ─────────────────────────────────────────────────────────── */
+.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-box {
+  background: var(--bg2); border: 1px solid var(--border); padding: 16px;
+  position: relative; overflow: hidden;
+}
+.stat-box::after {
+  content: attr(data-type); position: absolute; right: 10px; top: 10px;
+  font-family: var(--mono); font-size: 28px; font-weight: 600;
+  opacity: 0.05; color: var(--accent); pointer-events: none;
+}
+.stat-num { font-family: var(--mono); font-size: 28px; font-weight: 600; color: var(--accent); line-height: 1; }
+.stat-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-top: 4px; }
+.stat-desc { font-size: 11px; color: var(--text2); margin-top: 6px; }
+
+/* ─── EDI type tabs ──────────────────────────────────────────────────────── */
+.type-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
+.type-btn {
+  padding: 10px 8px; text-align: center; cursor: pointer;
+  background: var(--bg2); border: 1px solid var(--border);
+  transition: all 0.15s; font-family: var(--mono); font-size: 11px;
+}
+.type-btn:hover { border-color: var(--border2); background: var(--bg3); }
+.type-btn.active { border-color: var(--accent); background: rgba(0,212,170,0.06); }
+.type-btn .tnum { font-size: 18px; font-weight: 600; color: var(--text2); display: block; margin-bottom: 4px; }
+.type-btn.active .tnum { color: var(--accent); }
+.type-btn .tdesc { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); }
+
+/* ─── File table ─────────────────────────────────────────────────────────── */
+.file-toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
+.btn-primary {
+  padding: 8px 16px; background: var(--accent); border: none; color: var(--bg);
+  font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
+  text-transform: uppercase; transition: opacity 0.2s;
+}
+.btn-primary:hover { opacity: 0.85; }
+.btn-secondary {
+  padding: 8px 16px; background: transparent; border: 1px solid var(--border2); color: var(--text2);
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  transition: all 0.2s;
+}
+.btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
+.btn-danger {
+  padding: 4px 10px; background: transparent; border: 1px solid var(--danger); color: var(--danger);
+  font-family: var(--mono); font-size: 10px; transition: all 0.2s;
+}
+.btn-danger:hover { background: var(--danger); color: #fff; }
+.btn-dl {
+  padding: 4px 10px; background: transparent; border: 1px solid var(--accent2); color: var(--accent2);
+  font-family: var(--mono); font-size: 10px; transition: all 0.2s;
+}
+.btn-dl:hover { background: var(--accent2); color: #fff; }
+
+.file-table { width: 100%; border-collapse: collapse; }
+.file-table th {
+  text-align: left; padding: 8px 12px; font-family: var(--mono); font-size: 10px;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3);
+  border-bottom: 1px solid var(--border);
+}
+.file-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.file-table tr:last-child td { border-bottom: none; }
+.file-table tr:hover td { background: var(--bg3); }
+.file-name { font-family: var(--mono); font-size: 12px; color: var(--text); }
+.file-size { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.file-date { font-family: var(--mono); font-size: 11px; color: var(--text3); }
+.actions { display: flex; gap: 6px; }
+.empty-state {
+  text-align: center; padding: 40px 20px;
+  font-family: var(--mono); font-size: 12px; color: var(--text3);
+}
+.empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.3; }
+
+/* ─── Upload zones ───────────────────────────────────────────────────────── */
+.drop-zone {
+  border: 2px dashed var(--border2); padding: 32px; text-align: center;
+  cursor: pointer; transition: all 0.2s; position: relative;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--accent); background: rgba(0,212,170,0.04);
+}
+.drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+.drop-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.4; }
+.drop-text { font-family: var(--mono); font-size: 12px; color: var(--text2); }
+.drop-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
+
+/* ─── Invoice converter ──────────────────────────────────────────────────── */
+.converter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.preview-box {
+  background: var(--bg); border: 1px solid var(--border); padding: 16px;
+  font-family: var(--mono); font-size: 11px; color: var(--accent); white-space: pre-wrap;
+  word-break: break-all; max-height: 360px; overflow-y: auto; min-height: 200px;
+  line-height: 1.6;
+}
+.preview-placeholder { color: var(--text3); font-style: italic; }
+.status-bar {
+  padding: 8px 12px; font-family: var(--mono); font-size: 11px;
+  margin-top: 8px; background: var(--bg3); border: 1px solid var(--border);
+}
+.status-bar.success { border-color: var(--success); color: var(--success); }
+.status-bar.error   { border-color: var(--danger);  color: var(--danger);  }
+.status-bar.loading { border-color: var(--warn);    color: var(--warn);    }
+.progress-dots::after { content: '...'; animation: dots 1.2s infinite steps(4); }
+@keyframes dots { 0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:'...'} }
+
+/* ─── Logs table ─────────────────────────────────────────────────────────── */
+.log-row td { font-family: var(--mono); font-size: 11px; }
+.log-action { 
+  padding: 2px 6px; font-size: 10px; font-family: var(--mono);
+  background: rgba(0,212,170,0.1); color: var(--accent); letter-spacing: 0.05em;
+}
+.log-action.LOGIN { background: rgba(16,185,129,0.1); color: var(--success); }
+.log-action.FAIL  { background: rgba(239,68,68,0.1);  color: var(--danger); }
+.log-action.DELETE { background: rgba(239,68,68,0.1); color: var(--danger); }
+
+/* ─── Modals ─────────────────────────────────────────────────────────────── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: flex; align-items: center; justify-content: center; z-index: 50;
+  display: none;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--bg2); border: 1px solid var(--border2);
+  padding: 32px; width: 440px; position: relative;
+}
+.modal::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
+  background: linear-gradient(90deg, var(--accent2), var(--accent));
+}
+.modal-title { font-family: var(--mono); font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; }
+.modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
+
+/* ─── EDI reference panel ────────────────────────────────────────────────── */
+.ref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ref-item { background: var(--bg3); border: 1px solid var(--border); padding: 14px; }
+.ref-num { font-family: var(--mono); font-size: 24px; font-weight: 600; color: var(--accent2); margin-bottom: 4px; }
+.ref-name { font-weight: 600; font-size: 13px; margin-bottom: 6px; }
+.ref-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
+.ref-flow { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 8px; letter-spacing: 0.05em; }
+
+/* ─── Responsive ─────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  .stats-grid { grid-template-columns: repeat(3, 1fr); }
+  .converter-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+  .sidebar { display: none; }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
+  .type-grid  { grid-template-columns: repeat(3, 1fr); }
+}
+
+/* ─── Utilities ──────────────────────────────────────────────────────────── */
+.hidden { display: none !important; }
+.mt8 { margin-top: 8px; }
+.mt16 { margin-top: 16px; }
+.flex { display: flex; }
+.gap8 { gap: 8px; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN ══════════════════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="scan-lines"></div>
+    <div class="login-logo">
+      <div class="login-logo-icon">EDI</div>
+      <div class="login-logo-text">EXCHANGE PORTAL<br>v1.0 · SECURE</div>
+    </div>
+    <div class="login-title">Trading Partner Access</div>
+    <div class="login-sub">// ANSI X12 · 850 · 997 · 855 · 810</div>
+    <div class="form-group">
+      <label>Username</label>
+      <input type="text" id="login-user" autocomplete="username" placeholder="username">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="login-pass" autocomplete="current-password" placeholder="••••••••">
+    </div>
+    <button class="btn-login" onclick="doLogin()">Authenticate →</button>
+    <div class="login-error hidden" id="login-err"></div>
+  </div>
+</div>
+
+<!-- ═══ APP ════════════════════════════════════════════════════════════════ -->
+<div id="app">
+  <!-- Topbar -->
+  <div class="topbar">
+    <div class="topbar-logo">EDI PORTAL</div>
+    <div class="topbar-sep">|</div>
+    <div class="topbar-title">Trading Exchange System</div>
+    <div class="topbar-right">
+      <div class="topbar-time" id="clock"></div>
+      <div class="user-badge">
+        <div class="role-dot"></div>
+        <span id="user-display">—</span>
+      </div>
+      <button class="btn-sm" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="layout">
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Main</div>
+        <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
+          <span class="nav-icon">▦</span> Dashboard
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">EDI Documents</div>
+        <div class="nav-item" onclick="showPage('edi')" data-page="edi">
+          <span class="nav-icon">⇌</span> File Exchange
+          <span class="nav-badge" id="nav-count-total">0</span>
+        </div>
+        <div class="nav-item" onclick="showPageEdi('850')" data-page="850">
+          <span class="nav-icon" style="color:var(--accent2)">850</span> Purchase Orders
+          <span class="nav-badge" id="nav-850">0</span>
+        </div>
+        <div class="nav-item" onclick="showPageEdi('997')" data-page="997">
+          <span class="nav-icon" style="color:var(--success)">997</span> Func. Ack.
+          <span class="nav-badge" id="nav-997">0</span>
+        </div>
+        <div class="nav-item" onclick="showPageEdi('855')" data-page="855">
+          <span class="nav-icon" style="color:var(--warn)">855</span> PO Ack.
+          <span class="nav-badge" id="nav-855">0</span>
+        </div>
+        <div class="nav-item" onclick="showPageEdi('810')" data-page="810">
+          <span class="nav-icon" style="color:var(--accent)">810</span> Invoices
+          <span class="nav-badge" id="nav-810">0</span>
+        </div>
+        <div class="nav-item" onclick="showPageEdi('catalog')" data-page="catalog">
+          <span class="nav-icon" style="color:var(--text2)">CAT</span> Catalog Flat Files
+          <span class="nav-badge warn" id="nav-cat">0</span>
+        </div>
+      </div>
+      <div class="sidebar-section">
+        <div class="sidebar-label">Tools</div>
+        <div class="nav-item" onclick="showPage('converter')" data-page="converter">
+          <span class="nav-icon">⟳</span> Invoice Converter
+        </div>
+        <div class="nav-item" onclick="showPage('reference')" data-page="reference">
+          <span class="nav-icon">?</span> EDI Reference
+        </div>
+      </div>
+      <div class="sidebar-section" id="admin-nav">
+        <div class="sidebar-label">Admin</div>
+        <div class="nav-item" onclick="showPage('users')" data-page="users">
+          <span class="nav-icon">◉</span> Users
+        </div>
+        <div class="nav-item" onclick="showPage('logs')" data-page="logs">
+          <span class="nav-icon">≡</span> Audit Log
+        </div>
+      </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main" id="main-content">
+
+      <!-- ── DASHBOARD ── -->
+      <div id="page-dashboard" class="page">
+        <div class="page-header">
+          <div class="page-title">Dashboard</div>
+          <div class="page-sub">// EDI trading partner exchange overview</div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-box" data-type="850">
+            <div class="stat-num" id="stat-850">0</div>
+            <div class="stat-label">850</div>
+            <div class="stat-desc">Purchase Orders</div>
+          </div>
+          <div class="stat-box" data-type="997">
+            <div class="stat-num" id="stat-997">0</div>
+            <div class="stat-label">997</div>
+            <div class="stat-desc">Func. Acknowledgements</div>
+          </div>
+          <div class="stat-box" data-type="855">
+            <div class="stat-num" id="stat-855">0</div>
+            <div class="stat-label">855</div>
+            <div class="stat-desc">PO Acknowledgements</div>
+          </div>
+          <div class="stat-box" data-type="810">
+            <div class="stat-num" id="stat-810">0</div>
+            <div class="stat-label">810</div>
+            <div class="stat-desc">Invoices</div>
+          </div>
+          <div class="stat-box" data-type="CAT">
+            <div class="stat-num" id="stat-cat">0</div>
+            <div class="stat-label">CATALOG</div>
+            <div class="stat-desc">Flat Files</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">EDI Transaction Flow</div>
+          </div>
+          <div style="padding: 12px 0; font-family: var(--mono); font-size: 12px; line-height: 2; color: var(--text2);">
+            <div style="display:grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; max-width: 600px;">
+              <div style="color:var(--text3); font-size:10px; text-transform:uppercase; letter-spacing:.1em;">OrderDog POS</div>
+              <div></div>
+              <div style="color:var(--text3); font-size:10px; text-transform:uppercase; letter-spacing:.1em; text-align:right;">Your Store</div>
+              
+              <div style="background:rgba(0,152,212,0.1); border:1px solid var(--accent2); padding:6px 10px; color:var(--accent2);">850 Purchase Order</div>
+              <div style="color:var(--accent2); text-align:center;">──▶</div>
+              <div style="color:var(--text3); text-align:right; font-size:11px;">Receive PO from POS</div>
+              
+              <div style="color:var(--text3); text-align:left; font-size:11px;">Acknowledge receipt</div>
+              <div style="color:var(--success); text-align:center;">◀──</div>
+              <div style="background:rgba(16,185,129,0.1); border:1px solid var(--success); padding:6px 10px; color:var(--success); text-align:right;">997 Func. Ack.</div>
+              
+              <div style="color:var(--text3); text-align:left; font-size:11px;">Can you fulfill?</div>
+              <div style="color:var(--warn); text-align:center;">◀──</div>
+              <div style="background:rgba(245,158,11,0.1); border:1px solid var(--warn); padding:6px 10px; color:var(--warn); text-align:right;">855 PO Ack.</div>
+              
+              <div style="color:var(--text3); text-align:left; font-size:11px;">Invoice for payment</div>
+              <div style="color:var(--accent); text-align:center;">◀──</div>
+              <div style="background:rgba(0,212,170,0.1); border:1px solid var(--accent); padding:6px 10px; color:var(--accent); text-align:right;">810 Invoice</div>
+              
+              <div style="color:var(--text3); text-align:left; font-size:11px;">Daily pickup</div>
+              <div style="color:var(--text3); text-align:center;">◀──</div>
+              <div style="background:var(--bg3); border:1px solid var(--border2); padding:6px 10px; color:var(--text2); text-align:right;">Catalog Flat File</div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-header"><div class="card-title">Quick Actions</div></div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="btn-primary" onclick="showPageEdi('850')">↓ View Purchase Orders</button>
+            <button class="btn-primary" onclick="showPageEdi('810')">↑ Upload Invoice (810)</button>
+            <button class="btn-secondary" onclick="showPage('converter')">⟳ Convert Invoice → EDI</button>
+            <button class="btn-secondary" onclick="loadStats()">↺ Refresh Stats</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── EDI EXCHANGE ── -->
+      <div id="page-edi" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">EDI File Exchange</div>
+          <div class="page-sub">// Upload, download & manage EDI transaction sets</div>
+        </div>
+        <div class="type-grid">
+          <div class="type-btn active" onclick="switchEdiType('850')" id="tab-850">
+            <span class="tnum">850</span><span class="tdesc">Purchase Order</span>
+          </div>
+          <div class="type-btn" onclick="switchEdiType('997')" id="tab-997">
+            <span class="tnum">997</span><span class="tdesc">Func. Ack.</span>
+          </div>
+          <div class="type-btn" onclick="switchEdiType('855')" id="tab-855">
+            <span class="tnum">855</span><span class="tdesc">PO Ack.</span>
+          </div>
+          <div class="type-btn" onclick="switchEdiType('810')" id="tab-810">
+            <span class="tnum">810</span><span class="tdesc">Invoice</span>
+          </div>
+          <div class="type-btn" onclick="switchEdiType('catalog')" id="tab-catalog">
+            <span class="tnum" style="font-size:14px">CAT</span><span class="tdesc">Catalog Flat</span>
+          </div>
+        </div>
+        
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title" id="edi-card-title">850 · Purchase Orders</div>
+            <div style="font-family:var(--mono); font-size:10px; color:var(--text3)" id="edi-direction"></div>
+          </div>
+          
+          <!-- Upload -->
+          <div class="drop-zone" id="edi-drop" onclick="document.getElementById('edi-file-input').click()">
+            <input type="file" id="edi-file-input" accept=".edi,.txt,.x12,.dat,.csv" onchange="uploadEdiFile(this)">
+            <div class="drop-icon">⬆</div>
+            <div class="drop-text">Drop EDI file here or click to browse</div>
+            <div class="drop-sub">.edi · .x12 · .txt · .dat · .csv</div>
+          </div>
+          <div class="status-bar hidden" id="edi-upload-status"></div>
+          
+          <!-- File list -->
+          <div class="mt16">
+            <div class="file-toolbar">
+              <span style="font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text3)">Files</span>
+              <button class="btn-sm" onclick="loadEdiFiles(currentEdiType)" style="margin-left:auto">↺ Refresh</button>
+            </div>
+            <div id="edi-file-list">
+              <div class="empty-state"><div class="empty-icon">◫</div>No files yet</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── INVOICE CONVERTER ── -->
+      <div id="page-converter" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">Invoice → EDI 810 Converter</div>
+          <div class="page-sub">// AI-powered conversion of PDF or CSV invoices to ANSI X12 810</div>
+        </div>
+        <div class="converter-grid">
+          <div>
+            <div class="card">
+              <div class="card-header"><div class="card-title">Upload Invoice</div></div>
+              <div class="drop-zone" id="inv-drop" onclick="document.getElementById('inv-input').click()">
+                <input type="file" id="inv-input" accept=".pdf,.csv,.xlsx,.txt,.png,.jpg" onchange="handleInvoiceSelect(this)">
+                <div class="drop-icon">📄</div>
+                <div class="drop-text">Drop invoice file here</div>
+                <div class="drop-sub">PDF · CSV · Excel · Image</div>
+              </div>
+              <div id="inv-file-info" class="hidden mt8" style="font-family:var(--mono); font-size:11px; color:var(--text2); padding:8px; background:var(--bg3); border:1px solid var(--border);">
+                Selected: <span id="inv-filename"></span>
+              </div>
+              <div class="mt8">
+                <button class="btn-primary" onclick="convertInvoice()" id="btn-convert" style="width:100%">
+                  ⟳ Convert to EDI 810
+                </button>
+              </div>
+              <div class="status-bar hidden mt8" id="inv-status"></div>
+            </div>
+            <div class="card mt8">
+              <div class="card-header"><div class="card-title">How It Works</div></div>
+              <div style="font-size:12px; color:var(--text2); line-height:1.8; font-family:var(--mono);">
+                1. Upload your vendor invoice (PDF or CSV)<br>
+                2. AI reads and extracts line items, pricing, dates<br>
+                3. Generates compliant ANSI X12 810 EDI file<br>
+                4. File is saved to 810/ folder automatically<br>
+                5. OrderDog POS can immediately download it
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="height:100%">
+              <div class="card-header">
+                <div class="card-title">Generated EDI 810 Preview</div>
+                <button class="btn-sm hidden" id="btn-save-810" onclick="goTo810()">View in 810 →</button>
+              </div>
+              <div class="preview-box" id="edi-preview">
+                <span class="preview-placeholder">// Output will appear here after conversion...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── REFERENCE ── -->
+      <div id="page-reference" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">EDI Reference</div>
+          <div class="page-sub">// ANSI X12 transaction set documentation</div>
+        </div>
+        <div class="ref-grid">
+          <div class="ref-item">
+            <div class="ref-num">850</div>
+            <div class="ref-name">Purchase Order</div>
+            <div class="ref-desc">Sent by OrderDog POS to your portal. Contains items to be ordered, quantities, pricing, delivery date, and shipping terms.</div>
+            <div class="ref-flow">DIRECTION: OrderDog → You</div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-num" style="color:var(--success)">997</div>
+            <div class="ref-name">Functional Acknowledgement</div>
+            <div class="ref-desc">Confirms receipt and syntactic validity of any inbound EDI transaction. Must be sent back to OrderDog after receiving an 850.</div>
+            <div class="ref-flow">DIRECTION: You → OrderDog</div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-num" style="color:var(--warn)">855</div>
+            <div class="ref-name">Purchase Order Acknowledgement</div>
+            <div class="ref-desc">Responds to the 850 with acceptance, rejection, or modification. Tells OrderDog whether you can fulfill the order as requested.</div>
+            <div class="ref-flow">DIRECTION: You → OrderDog</div>
+          </div>
+          <div class="ref-item">
+            <div class="ref-num">810</div>
+            <div class="ref-name">Invoice</div>
+            <div class="ref-desc">Electronic invoice submitted to OrderDog after fulfillment. Replaces paper invoices. Use the Invoice Converter tool to auto-generate from PDF/CSV.</div>
+            <div class="ref-flow">DIRECTION: You → OrderDog</div>
+          </div>
+        </div>
+        <div class="card mt16">
+          <div class="card-header"><div class="card-title">Catalog Flat File (Daily FTP)</div></div>
+          <div style="font-size:13px; color:var(--text2); line-height:1.8;">
+            OrderDog picks up a daily flat file from this server. The file should be a <strong style="color:var(--text)">pipe-delimited (|) or tab-delimited .txt / .csv</strong> with the following recommended columns:
+            <br><br>
+            <code style="font-family:var(--mono); font-size:11px; background:var(--bg3); padding:12px; display:block; border:1px solid var(--border); color:var(--accent)">
+UPC | ITEM_DESC | PACK_SIZE | UNIT_COST | RETAIL_PRICE | CATEGORY | VENDOR_CODE | ACTIVE
+012345678901 | PEPSI 20OZ | 24 | 14.40 | 1.99 | BEVERAGES | PEPSI | 1
+            </code>
+            <br>
+            Upload your catalog file to the <strong style="color:var(--accent)">Catalog Flat Files</strong> section. OrderDog polls this portal daily to pick it up.
+          </div>
+        </div>
+      </div>
+
+      <!-- ── USERS ── -->
+      <div id="page-users" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">User Management</div>
+          <div class="page-sub">// Admin only — manage portal access</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Users</div>
+            <button class="btn-primary" onclick="document.getElementById('modal-add-user').classList.add('open')">+ Add User</button>
+          </div>
+          <table class="file-table" id="users-table">
+            <thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Actions</th></tr></thead>
+            <tbody id="users-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- ── LOGS ── -->
+      <div id="page-logs" class="page hidden">
+        <div class="page-header">
+          <div class="page-title">Audit Log</div>
+          <div class="page-sub">// All portal activity · last 200 entries</div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title">Activity Log</div>
+            <button class="btn-sm" onclick="loadLogs()">↺ Refresh</button>
+          </div>
+          <table class="file-table">
+            <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Detail</th></tr></thead>
+            <tbody id="logs-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /layout -->
+</div><!-- /app -->
+
+<!-- ── Add User Modal ── -->
+<div class="modal-overlay" id="modal-add-user">
+  <div class="modal">
+    <div class="modal-title">Add User</div>
+    <div class="form-group"><label>Username</label><input type="text" id="new-username"></div>
+    <div class="form-group"><label>Full Name</label><input type="text" id="new-name"></div>
+    <div class="form-group"><label>Password</label><input type="password" id="new-password"></div>
+    <div class="form-group">
+      <label>Role</label>
+      <select id="new-role" style="width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:13px;outline:none;">
+        <option value="pos">POS Provider</option>
+        <option value="admin">Admin</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="document.getElementById('modal-add-user').classList.remove('open')">Cancel</button>
+      <button class="btn-primary" onclick="addUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── State ────────────────────────────────────────────────────────────────────
+let currentUser = null;
+let currentEdiType = '850';
+let selectedInvoiceFile = null;
+
+// ─── EDI type metadata ────────────────────────────────────────────────────────
+const EDI_META = {
+  '850':     { title: '850 · Purchase Orders',         dir: 'OrderDog → You',  color: '#0098d4' },
+  '997':     { title: '997 · Functional Ack.',          dir: 'You → OrderDog',  color: '#10b981' },
+  '855':     { title: '855 · PO Acknowledgements',      dir: 'You → OrderDog',  color: '#f59e0b' },
+  '810':     { title: '810 · Invoices',                 dir: 'You → OrderDog',  color: '#00d4aa' },
+  'catalog': { title: 'CATALOG · Flat Files',           dir: 'You → OrderDog (daily pickup)', color: '#7a8499' },
+};
+
+// ─── Clock ────────────────────────────────────────────────────────────────────
+function tickClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
+}
+setInterval(tickClock, 1000); tickClock();
+
+// ─── Login ────────────────────────────────────────────────────────────────────
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+document.getElementById('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-pass').focus(); });
+
+async function doLogin() {
+  const username = document.getElementById('login-user').value.trim();
+  const password = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err');
+  err.classList.add('hidden');
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (!res.ok) { err.textContent = data.error || 'Login failed'; err.classList.remove('hidden'); return; }
+    currentUser = data;
+    document.getElementById('user-display').textContent = `${data.name} [${data.role.toUpperCase()}]`;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').classList.add('visible');
+    if (data.role !== 'admin') document.getElementById('admin-nav').style.display = 'none';
+    await loadStats();
+    showPage('dashboard');
+  } catch { err.textContent = 'Connection error'; err.classList.remove('hidden'); }
+}
+
+async function doLogout() {
+  await fetch('/api/logout', { method: 'POST' });
+  location.reload();
+}
+
+// ─── Navigation ───────────────────────────────────────────────────────────────
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const page = document.getElementById('page-' + name);
+  if (page) page.classList.remove('hidden');
+  const nav = document.querySelector(`[data-page="${name}"]`);
+  if (nav) nav.classList.add('active');
+  if (name === 'users') loadUsers();
+  if (name === 'logs') loadLogs();
+}
+
+function showPageEdi(type) {
+  currentEdiType = type;
+  showPage('edi');
+  switchEdiType(type);
+  // highlight correct nav
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const nav = document.querySelector(`[data-page="${type}"]`);
+  if (nav) nav.classList.add('active');
+}
+
+function switchEdiType(type) {
+  currentEdiType = type;
+  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
+  const tab = document.getElementById('tab-' + type);
+  if (tab) tab.classList.add('active');
+  const meta = EDI_META[type] || {};
+  document.getElementById('edi-card-title').textContent = meta.title || type;
+  document.getElementById('edi-direction').textContent = meta.dir || '';
+  loadEdiFiles(type);
+}
+
+// ─── Stats ────────────────────────────────────────────────────────────────────
+async function loadStats() {
+  try {
+    const res  = await fetch('/api/stats');
+    const data = await res.json();
+    const total = (data['850']||0)+(data['997']||0)+(data['855']||0)+(data['810']||0)+(data['catalog']||0);
+    document.getElementById('stat-850').textContent = data['850'] || 0;
+    document.getElementById('stat-997').textContent = data['997'] || 0;
+    document.getElementById('stat-855').textContent = data['855'] || 0;
+    document.getElementById('stat-810').textContent = data['810'] || 0;
+    document.getElementById('stat-cat').textContent = data['catalog'] || 0;
+    document.getElementById('nav-850').textContent = data['850'] || 0;
+    document.getElementById('nav-997').textContent = data['997'] || 0;
+    document.getElementById('nav-855').textContent = data['855'] || 0;
+    document.getElementById('nav-810').textContent = data['810'] || 0;
+    document.getElementById('nav-cat').textContent = data['catalog'] || 0;
+    document.getElementById('nav-count-total').textContent = total;
+  } catch {}
+}
+
+// ─── EDI Files ────────────────────────────────────────────────────────────────
+async function loadEdiFiles(type) {
+  const container = document.getElementById('edi-file-list');
+  container.innerHTML = '<div class="empty-state"><span class="progress-dots">Loading</span></div>';
+  try {
+    const res   = await fetch(`/api/edi/${type}`);
+    const files = await res.json();
+    if (!files.length) {
+      container.innerHTML = '<div class="empty-state"><div class="empty-icon">◫</div>No files in this mailbox</div>';
+      return;
+    }
+    let rows = files.map(f => `
+      <tr>
+        <td><span class="file-name">${escHtml(f.name)}</span></td>
+        <td><span class="file-size">${fmtSize(f.size)}</span></td>
+        <td><span class="file-date">${fmtDate(f.modified)}</span></td>
+        <td><div class="actions">
+          <button class="btn-dl" onclick="downloadFile('${type}','${escHtml(f.name)}')">↓ Download</button>
+          ${currentUser?.role === 'admin' ? `<button class="btn-danger" onclick="deleteFile('${type}','${escHtml(f.name)}')">✕</button>` : ''}
+        </div></td>
+      </tr>`).join('');
+    container.innerHTML = `<table class="file-table"><thead><tr><th>Filename</th><th>Size</th><th>Modified</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
+  } catch { container.innerHTML = '<div class="empty-state" style="color:var(--danger)">Error loading files</div>'; }
+}
+
+async function uploadEdiFile(input) {
+  const file = input.files[0]; if (!file) return;
+  const status = document.getElementById('edi-upload-status');
+  status.textContent = `Uploading ${file.name}...`;
+  status.className = 'status-bar loading';
+  status.classList.remove('hidden');
+  const fd = new FormData(); fd.append('file', file);
+  try {
+    const res  = await fetch(`/api/edi/${currentEdiType}/upload`, { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      status.textContent = `✓ Uploaded: ${data.filename}`;
+      status.className = 'status-bar success';
+      loadEdiFiles(currentEdiType);
+      loadStats();
+    } else { status.textContent = '✗ Error: ' + data.error; status.className = 'status-bar error'; }
+  } catch { status.textContent = '✗ Upload failed'; status.className = 'status-bar error'; }
+  input.value = '';
+}
+
+function downloadFile(type, name) {
+  window.location.href = `/api/edi/${type}/download/${encodeURIComponent(name)}`;
+}
+
+async function deleteFile(type, name) {
+  if (!confirm(`Delete ${name}?`)) return;
+  await fetch(`/api/edi/${type}/${encodeURIComponent(name)}`, { method: 'DELETE' });
+  loadEdiFiles(type); loadStats();
+}
+
+// ─── Invoice Converter ────────────────────────────────────────────────────────
+function handleInvoiceSelect(input) {
+  selectedInvoiceFile = input.files[0];
+  if (!selectedInvoiceFile) return;
+  document.getElementById('inv-filename').textContent = selectedInvoiceFile.name;
+  document.getElementById('inv-file-info').classList.remove('hidden');
+  document.getElementById('edi-preview').innerHTML = '<span class="preview-placeholder">// Ready to convert. Click the button above.</span>';
+  document.getElementById('inv-status').classList.add('hidden');
+  document.getElementById('btn-save-810').classList.add('hidden');
+}
+
+async function convertInvoice() {
+  if (!selectedInvoiceFile) { alert('Please select an invoice file first.'); return; }
+  const status  = document.getElementById('inv-status');
+  const preview = document.getElementById('edi-preview');
+  status.innerHTML = '<span class="progress-dots">Converting invoice to EDI 810</span>';
+  status.className = 'status-bar loading'; status.classList.remove('hidden');
+  preview.textContent = '// Analyzing invoice...';
+  document.getElementById('btn-convert').disabled = true;
+
+  const fd = new FormData(); fd.append('invoice', selectedInvoiceFile);
+  try {
+    const res  = await fetch('/api/invoice/convert', { method: 'POST', body: fd });
+    const data = await res.json();
+    if (data.success) {
+      preview.textContent = data.preview + (data.preview.length >= 800 ? '\n\n// [truncated — full file saved]' : '');
+      status.textContent = `✓ Generated: ${data.filename} — saved to 810/ mailbox`;
+      status.className = 'status-bar success';
+      document.getElementById('btn-save-810').classList.remove('hidden');
+      loadStats();
+    } else {
+      preview.textContent = '// Error: ' + (data.error || 'Unknown error');
+      status.textContent = '✗ Conversion failed: ' + (data.error || 'Unknown');
+      status.className = 'status-bar error';
+    }
+  } catch(e) {
+    preview.textContent = '// Connection error: ' + e.message;
+    status.textContent = '✗ Network error';
+    status.className = 'status-bar error';
+  }
+  document.getElementById('btn-convert').disabled = false;
+}
+
+function goTo810() { showPageEdi('810'); }
+
+// ─── Users ────────────────────────────────────────────────────────────────────
+async function loadUsers() {
+  const res   = await fetch('/api/admin/users');
+  const users = await res.json();
+  const tbody = document.getElementById('users-tbody');
+  tbody.innerHTML = users.map(u => `
+    <tr>
+      <td class="file-name">${escHtml(u.username)}</td>
+      <td>${escHtml(u.name)}</td>
+      <td><span style="font-family:var(--mono);font-size:10px;text-transform:uppercase;padding:2px 6px;background:var(--bg3);border:1px solid var(--border2)">${u.role}</span></td>
+      <td>${u.id != 1 ? `<button class="btn-danger" onclick="deleteUser(${u.id})">Remove</button>` : '—'}</td>
+    </tr>`).join('');
+}
+
+async function addUser() {
+  const body = {
+    username: document.getElementById('new-username').value.trim(),
+    name:     document.getElementById('new-name').value.trim(),
+    password: document.getElementById('new-password').value,
+    role:     document.getElementById('new-role').value,
+  };
+  if (!body.username || !body.password) return alert('Username and password required');
+  const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const data = await res.json();
+  if (data.success) {
+    document.getElementById('modal-add-user').classList.remove('open');
+    loadUsers();
+  } else { alert(data.error); }
+}
+
+async function deleteUser(id) {
+  if (!confirm('Remove this user?')) return;
+  await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+  loadUsers();
+}
+
+// ─── Logs ─────────────────────────────────────────────────────────────────────
+async function loadLogs() {
+  const res  = await fetch('/api/admin/logs');
+  const logs = await res.json();
+  const tbody = document.getElementById('logs-tbody');
+  tbody.innerHTML = logs.map(l => {
+    const actionClass = l.action.includes('FAIL') || l.action.includes('DELETE') ? 'FAIL' : l.action.includes('LOGIN') ? 'LOGIN' : '';
+    return `<tr class="log-row">
+      <td>${new Date(l.ts).toLocaleString()}</td>
+      <td style="color:var(--accent2)">${escHtml(l.user)}</td>
+      <td><span class="log-action ${actionClass}">${escHtml(l.action)}</span></td>
+      <td style="color:var(--text2)">${escHtml(l.detail)}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="4" class="empty-state">No logs yet</td></tr>';
+}
+
+// ─── Drag & Drop ──────────────────────────────────────────────────────────────
+function setupDrop(zone, input) {
+  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
+  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
+  zone.addEventListener('drop', e => {
+    e.preventDefault(); zone.classList.remove('dragover');
+    if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); }
+  });
+}
+document.addEventListener('DOMContentLoaded', () => {
+  setupDrop(document.getElementById('edi-drop'),  document.getElementById('edi-file-input'));
+  setupDrop(document.getElementById('inv-drop'),  document.getElementById('inv-input'));
+});
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function fmtSize(b) { if(b<1024)return b+'B'; if(b<1048576)return (b/1024).toFixed(1)+'KB'; return (b/1048576).toFixed(1)+'MB'; }
+function fmtDate(d) { return new Date(d).toLocaleString('en-US',{month:'2-digit',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}); }
+</script>
+</body>
+</html>
