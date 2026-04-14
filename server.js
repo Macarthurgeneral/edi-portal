@@ -24,7 +24,7 @@ Object.values(DIRS).forEach(d => fs.mkdirSync(d, { recursive: true }));
 
 // ─── Users DB (flat file) ────────────────────────────────────────────────────
 const USERS_FILE = path.join(DIRS.data, 'users.json');
-if (!fs.existsSync(USERS_FILE)) {
+if (!fs.existsSync(USERS_FILE) || process.env.RESET_USERS === 'true') {
   const admin_hash = bcrypt.hashSync('EDIInvoicing!1', 10);
   const pos_hash   = bcrypt.hashSync('pospass1', 10);
   fs.writeFileSync(USERS_FILE, JSON.stringify([
