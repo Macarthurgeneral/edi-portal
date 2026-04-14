@@ -24,8 +24,8 @@ Object.values(DIRS).forEach(d => fs.mkdirSync(d, { recursive: true }));
 
 // ─── Users DB (flat file) ────────────────────────────────────────────────────
 const USERS_FILE = path.join(DIRS.data, 'users.json');
-if (!fs.existsSync(USERS_FILE) || process.env.RESET_USERS === 'true') {
-  const admin_hash = bcrypt.hashSync('EDIInvoicing!1', 10);
+if (!fs.existsSync(USERS_FILE)) {
+  const admin_hash = bcrypt.hashSync('admin123', 10);
   const pos_hash   = bcrypt.hashSync('pospass1', 10);
   fs.writeFileSync(USERS_FILE, JSON.stringify([
     { id: 1, username: 'admin',    password: admin_hash, role: 'admin',    name: 'Store Admin' },
@@ -220,18 +220,25 @@ If you cannot read certain fields clearly, use placeholder values like UNKNOWN o
         'anthropic-version': '2023-06-01'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
+        model: 'claude-sonnet-4-5',
+        max_tokens: 4000,
         system: systemPrompt,
         messages: [{ role: 'user', content: userContent }]
       })
     });
 
     const aiData = await apiRes.json();
+    console.log('Anthropic API response status:', apiRes.status);
+    console.log('Anthropic API response:', JSON.stringify(aiData).substring(0, 500));
+    
     const ediContent = aiData.content?.[0]?.text || '';
 
     if (!ediContent) {
-      return res.status(500).json({ error: 'AI conversion failed', detail: JSON.stringify(aiData) });
+      return res.status(500).json({ 
+        error: 'AI conversion failed', 
+        detail: JSON.stringify(aiData),
+        status: apiRes.status
+      });
     }
 
     // Save generated 810 file
