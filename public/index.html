@@ -4,988 +4,665 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>EDI Exchange Portal</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
-/* ═══ RESET & BASE ═══════════════════════════════════════════════════════════ */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-:root {
-  --bg:       #0a0c0f;
-  --bg2:      #111318;
-  --bg3:      #181c24;
-  --border:   #232830;
-  --border2:  #2e3540;
-  --text:     #d4dae6;
-  --text2:    #7a8499;
-  --text3:    #4a5568;
-  --accent:   #00d4aa;
-  --accent2:  #0098d4;
-  --warn:     #f59e0b;
-  --danger:   #ef4444;
-  --success:  #10b981;
-  --mono:     'IBM Plex Mono', monospace;
-  --sans:     'IBM Plex Sans', sans-serif;
-}
-html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); font-size: 14px; }
-a { color: var(--accent); text-decoration: none; }
-button { cursor: pointer; font-family: var(--sans); }
-input, select, textarea { font-family: var(--sans); }
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg2); }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
-
-/* ═══ LOGIN SCREEN ═══════════════════════════════════════════════════════════ */
-#login-screen {
-  position: fixed; inset: 0; background: var(--bg);
-  display: flex; align-items: center; justify-content: center;
-  z-index: 100;
-}
-.login-box {
-  width: 380px; padding: 48px 40px;
-  background: var(--bg2); border: 1px solid var(--border);
-  position: relative; overflow: hidden;
-}
-.login-box::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, var(--accent2), var(--accent));
-}
-.login-logo {
-  display: flex; align-items: center; gap: 12px; margin-bottom: 32px;
-}
-.login-logo-icon {
-  width: 40px; height: 40px; background: var(--accent);
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--mono); font-weight: 600; font-size: 16px; color: var(--bg);
-}
-.login-logo-text { font-family: var(--mono); font-size: 11px; letter-spacing: 0.15em; color: var(--text2); text-transform: uppercase; line-height: 1.4; }
-.login-title { font-size: 20px; font-weight: 600; margin-bottom: 8px; color: var(--text); }
-.login-sub { font-size: 12px; color: var(--text2); margin-bottom: 28px; font-family: var(--mono); }
-.form-group { margin-bottom: 16px; }
-.form-group label { display: block; font-size: 11px; font-family: var(--mono); letter-spacing: 0.1em; color: var(--text2); text-transform: uppercase; margin-bottom: 6px; }
-.form-group input {
-  width: 100%; padding: 10px 14px;
-  background: var(--bg3); border: 1px solid var(--border2); color: var(--text);
-  font-family: var(--mono); font-size: 13px; outline: none;
-  transition: border-color 0.2s;
-}
-.form-group input:focus { border-color: var(--accent); }
-.btn-login {
-  width: 100%; padding: 12px; margin-top: 8px;
-  background: var(--accent); color: var(--bg); border: none;
-  font-family: var(--mono); font-weight: 600; font-size: 13px; letter-spacing: 0.08em;
-  text-transform: uppercase; transition: opacity 0.2s;
-}
-.btn-login:hover { opacity: 0.85; }
-.login-error { color: var(--danger); font-family: var(--mono); font-size: 11px; margin-top: 10px; text-align: center; }
-.scan-lines {
-  position: absolute; inset: 0; pointer-events: none; opacity: 0.03;
-  background: repeating-linear-gradient(0deg, transparent, transparent 2px, #fff 2px, #fff 4px);
-}
-
-/* ═══ APP SHELL ══════════════════════════════════════════════════════════════ */
-#app { display: none; height: 100vh; flex-direction: column; }
-#app.visible { display: flex; }
-
-/* ─── Top bar ─────────────────────────────────────────────────────────────── */
-.topbar {
-  height: 52px; background: var(--bg2); border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; padding: 0 20px; gap: 16px; flex-shrink: 0;
-  position: relative;
-}
-.topbar::after {
-  content: ''; position: absolute; bottom: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, var(--accent2), var(--accent), transparent);
-}
-.topbar-logo { font-family: var(--mono); font-size: 13px; font-weight: 600; letter-spacing: 0.1em; color: var(--accent); }
-.topbar-sep { color: var(--border2); }
-.topbar-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; color: var(--text2); text-transform: uppercase; }
-.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
-.user-badge {
-  display: flex; align-items: center; gap: 8px;
-  padding: 4px 10px; background: var(--bg3); border: 1px solid var(--border);
-  font-family: var(--mono); font-size: 11px; color: var(--text2);
-}
-.user-badge .role-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
-.btn-sm {
-  padding: 5px 12px; background: transparent; border: 1px solid var(--border2);
-  color: var(--text2); font-family: var(--mono); font-size: 11px; letter-spacing: 0.05em;
-  text-transform: uppercase; transition: all 0.2s;
-}
-.btn-sm:hover { border-color: var(--accent); color: var(--accent); }
-.topbar-time { font-family: var(--mono); font-size: 11px; color: var(--text3); }
-
-/* ─── Layout ─────────────────────────────────────────────────────────────── */
-.layout { display: flex; flex: 1; overflow: hidden; }
-
-/* ─── Sidebar ────────────────────────────────────────────────────────────── */
-.sidebar {
-  width: 220px; background: var(--bg2); border-right: 1px solid var(--border);
-  display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto;
-}
-.sidebar-section { padding: 20px 0; border-bottom: 1px solid var(--border); }
-.sidebar-label {
-  padding: 0 16px 8px; font-family: var(--mono); font-size: 10px;
-  letter-spacing: 0.15em; text-transform: uppercase; color: var(--text3);
-}
-.nav-item {
-  display: flex; align-items: center; gap: 10px; padding: 9px 16px;
-  cursor: pointer; transition: all 0.15s; border-left: 2px solid transparent;
-  font-size: 13px; color: var(--text2);
-}
-.nav-item:hover { background: var(--bg3); color: var(--text); }
-.nav-item.active { background: var(--bg3); color: var(--accent); border-left-color: var(--accent); }
-.nav-icon { font-family: var(--mono); font-size: 11px; width: 20px; text-align: center; color: var(--text3); }
-.nav-item.active .nav-icon { color: var(--accent); }
-.nav-badge {
-  margin-left: auto; background: var(--accent); color: var(--bg);
-  font-family: var(--mono); font-size: 10px; font-weight: 600;
-  padding: 1px 6px; min-width: 20px; text-align: center;
-}
-.nav-badge.warn { background: var(--warn); }
-
-/* ─── Main content ───────────────────────────────────────────────────────── */
-.main { flex: 1; overflow-y: auto; padding: 24px; }
-
-/* ─── Page header ────────────────────────────────────────────────────────── */
-.page-header { margin-bottom: 24px; }
-.page-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
-.page-sub { font-family: var(--mono); font-size: 11px; color: var(--text2); }
-
-/* ─── Cards ──────────────────────────────────────────────────────────────── */
-.card {
-  background: var(--bg2); border: 1px solid var(--border); padding: 20px;
-  margin-bottom: 16px;
-}
-.card-header {
-  display: flex; align-items: center; justify-content: space-between;
-  margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--border);
-}
-.card-title { font-family: var(--mono); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); }
-
-/* ─── Stats grid ─────────────────────────────────────────────────────────── */
-.stats-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 20px; }
-.stat-box {
-  background: var(--bg2); border: 1px solid var(--border); padding: 16px;
-  position: relative; overflow: hidden;
-}
-.stat-box::after {
-  content: attr(data-type); position: absolute; right: 10px; top: 10px;
-  font-family: var(--mono); font-size: 28px; font-weight: 600;
-  opacity: 0.05; color: var(--accent); pointer-events: none;
-}
-.stat-num { font-family: var(--mono); font-size: 28px; font-weight: 600; color: var(--accent); line-height: 1; }
-.stat-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-top: 4px; }
-.stat-desc { font-size: 11px; color: var(--text2); margin-top: 6px; }
-
-/* ─── EDI type tabs ──────────────────────────────────────────────────────── */
-.type-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; margin-bottom: 20px; }
-.type-btn {
-  padding: 10px 8px; text-align: center; cursor: pointer;
-  background: var(--bg2); border: 1px solid var(--border);
-  transition: all 0.15s; font-family: var(--mono); font-size: 11px;
-}
-.type-btn:hover { border-color: var(--border2); background: var(--bg3); }
-.type-btn.active { border-color: var(--accent); background: rgba(0,212,170,0.06); }
-.type-btn .tnum { font-size: 18px; font-weight: 600; color: var(--text2); display: block; margin-bottom: 4px; }
-.type-btn.active .tnum { color: var(--accent); }
-.type-btn .tdesc { font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); }
-
-/* ─── File table ─────────────────────────────────────────────────────────── */
-.file-toolbar { display: flex; gap: 8px; margin-bottom: 12px; align-items: center; }
-.btn-primary {
-  padding: 8px 16px; background: var(--accent); border: none; color: var(--bg);
-  font-family: var(--mono); font-size: 11px; font-weight: 600; letter-spacing: 0.08em;
-  text-transform: uppercase; transition: opacity 0.2s;
-}
-.btn-primary:hover { opacity: 0.85; }
-.btn-secondary {
-  padding: 8px 16px; background: transparent; border: 1px solid var(--border2); color: var(--text2);
-  font-family: var(--mono); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-  transition: all 0.2s;
-}
-.btn-secondary:hover { border-color: var(--accent2); color: var(--accent2); }
-.btn-danger {
-  padding: 4px 10px; background: transparent; border: 1px solid var(--danger); color: var(--danger);
-  font-family: var(--mono); font-size: 10px; transition: all 0.2s;
-}
-.btn-danger:hover { background: var(--danger); color: #fff; }
-.btn-dl {
-  padding: 4px 10px; background: transparent; border: 1px solid var(--accent2); color: var(--accent2);
-  font-family: var(--mono); font-size: 10px; transition: all 0.2s;
-}
-.btn-dl:hover { background: var(--accent2); color: #fff; }
-
-.file-table { width: 100%; border-collapse: collapse; }
-.file-table th {
-  text-align: left; padding: 8px 12px; font-family: var(--mono); font-size: 10px;
-  letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3);
-  border-bottom: 1px solid var(--border);
-}
-.file-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
-.file-table tr:last-child td { border-bottom: none; }
-.file-table tr:hover td { background: var(--bg3); }
-.file-name { font-family: var(--mono); font-size: 12px; color: var(--text); }
-.file-size { font-family: var(--mono); font-size: 11px; color: var(--text3); }
-.file-date { font-family: var(--mono); font-size: 11px; color: var(--text3); }
-.actions { display: flex; gap: 6px; }
-.empty-state {
-  text-align: center; padding: 40px 20px;
-  font-family: var(--mono); font-size: 12px; color: var(--text3);
-}
-.empty-state .empty-icon { font-size: 32px; margin-bottom: 12px; opacity: 0.3; }
-
-/* ─── Upload zones ───────────────────────────────────────────────────────── */
-.drop-zone {
-  border: 2px dashed var(--border2); padding: 32px; text-align: center;
-  cursor: pointer; transition: all 0.2s; position: relative;
-}
-.drop-zone:hover, .drop-zone.dragover {
-  border-color: var(--accent); background: rgba(0,212,170,0.04);
-}
-.drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.drop-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.4; }
-.drop-text { font-family: var(--mono); font-size: 12px; color: var(--text2); }
-.drop-sub { font-size: 11px; color: var(--text3); margin-top: 4px; }
-
-/* ─── Invoice converter ──────────────────────────────────────────────────── */
-.converter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.preview-box {
-  background: var(--bg); border: 1px solid var(--border); padding: 16px;
-  font-family: var(--mono); font-size: 11px; color: var(--accent); white-space: pre-wrap;
-  word-break: break-all; max-height: 360px; overflow-y: auto; min-height: 200px;
-  line-height: 1.6;
-}
-.preview-placeholder { color: var(--text3); font-style: italic; }
-.status-bar {
-  padding: 8px 12px; font-family: var(--mono); font-size: 11px;
-  margin-top: 8px; background: var(--bg3); border: 1px solid var(--border);
-}
-.status-bar.success { border-color: var(--success); color: var(--success); }
-.status-bar.error   { border-color: var(--danger);  color: var(--danger);  }
-.status-bar.loading { border-color: var(--warn);    color: var(--warn);    }
-.progress-dots::after { content: '...'; animation: dots 1.2s infinite steps(4); }
-@keyframes dots { 0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:'...'} }
-
-/* ─── Logs table ─────────────────────────────────────────────────────────── */
-.log-row td { font-family: var(--mono); font-size: 11px; }
-.log-action { 
-  padding: 2px 6px; font-size: 10px; font-family: var(--mono);
-  background: rgba(0,212,170,0.1); color: var(--accent); letter-spacing: 0.05em;
-}
-.log-action.LOGIN { background: rgba(16,185,129,0.1); color: var(--success); }
-.log-action.FAIL  { background: rgba(239,68,68,0.1);  color: var(--danger); }
-.log-action.DELETE { background: rgba(239,68,68,0.1); color: var(--danger); }
-
-/* ─── Modals ─────────────────────────────────────────────────────────────── */
-.modal-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-  display: flex; align-items: center; justify-content: center; z-index: 50;
-  display: none;
-}
-.modal-overlay.open { display: flex; }
-.modal {
-  background: var(--bg2); border: 1px solid var(--border2);
-  padding: 32px; width: 440px; position: relative;
-}
-.modal::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, var(--accent2), var(--accent));
-}
-.modal-title { font-family: var(--mono); font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--accent); margin-bottom: 20px; }
-.modal-actions { display: flex; gap: 8px; margin-top: 20px; justify-content: flex-end; }
-
-/* ─── EDI reference panel ────────────────────────────────────────────────── */
-.ref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.ref-item { background: var(--bg3); border: 1px solid var(--border); padding: 14px; }
-.ref-num { font-family: var(--mono); font-size: 24px; font-weight: 600; color: var(--accent2); margin-bottom: 4px; }
-.ref-name { font-weight: 600; font-size: 13px; margin-bottom: 6px; }
-.ref-desc { font-size: 12px; color: var(--text2); line-height: 1.5; }
-.ref-flow { font-family: var(--mono); font-size: 10px; color: var(--text3); margin-top: 8px; letter-spacing: 0.05em; }
-
-/* ─── Responsive ─────────────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  .stats-grid { grid-template-columns: repeat(3, 1fr); }
-  .converter-grid { grid-template-columns: 1fr; }
-}
-@media (max-width: 700px) {
-  .sidebar { display: none; }
-  .stats-grid { grid-template-columns: repeat(2, 1fr); }
-  .type-grid  { grid-template-columns: repeat(3, 1fr); }
-}
-
-/* ─── Utilities ──────────────────────────────────────────────────────────── */
-.hidden { display: none !important; }
-.mt8 { margin-top: 8px; }
-.mt16 { margin-top: 16px; }
-.flex { display: flex; }
-.gap8 { gap: 8px; }
-.items-center { align-items: center; }
-.justify-between { justify-content: space-between; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0a0c0f;--bg2:#111318;--bg3:#181c24;--border:#232830;--border2:#2e3540;--text:#d4dae6;--text2:#7a8499;--text3:#4a5568;--accent:#00d4aa;--accent2:#0098d4;--warn:#f59e0b;--danger:#ef4444;--success:#10b981;--mono:'IBM Plex Mono',monospace;--sans:'IBM Plex Sans',sans-serif;}
+html,body{height:100%;background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--bg2)}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+#login-screen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100}
+.login-box{width:380px;padding:48px 40px;background:var(--bg2);border:1px solid var(--border);position:relative;overflow:hidden}
+.login-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+.login-logo{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.login-logo-icon{width:40px;height:40px;background:var(--accent);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:600;font-size:14px;color:var(--bg)}
+.login-logo-text{font-family:var(--mono);font-size:11px;letter-spacing:.15em;color:var(--text2);text-transform:uppercase;line-height:1.5}
+.login-title{font-size:20px;font-weight:600;margin-bottom:6px}.login-sub{font-size:11px;color:var(--text2);margin-bottom:28px;font-family:var(--mono)}
+.fg{margin-bottom:16px}.fg label{display:block;font-size:11px;font-family:var(--mono);letter-spacing:.1em;color:var(--text2);text-transform:uppercase;margin-bottom:6px}
+.fg input,.fg select{width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:13px;outline:none;transition:border-color .2s}
+.fg input:focus,.fg select:focus{border-color:var(--accent)}
+.btn-login{width:100%;padding:12px;margin-top:8px;background:var(--accent);color:var(--bg);border:none;font-family:var(--mono);font-weight:600;font-size:13px;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:opacity .2s}
+.btn-login:hover{opacity:.85}.login-error{color:var(--danger);font-family:var(--mono);font-size:11px;margin-top:10px;text-align:center}
+#app{display:none;height:100vh;flex-direction:column}#app.visible{display:flex}
+.topbar{height:52px;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;position:relative}
+.topbar::after{content:'';position:absolute;bottom:0;left:0;right:0;height:1px;background:linear-gradient(90deg,var(--accent2),var(--accent),transparent)}
+.topbar-logo{font-family:var(--mono);font-size:13px;font-weight:600;letter-spacing:.1em;color:var(--accent)}
+.topbar-sep{color:var(--border2)}.topbar-sub{font-family:var(--mono);font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.06em}
+.topbar-right{margin-left:auto;display:flex;align-items:center;gap:14px}
+.user-badge{display:flex;align-items:center;gap:8px;padding:4px 10px;background:var(--bg3);border:1px solid var(--border);font-family:var(--mono);font-size:11px;color:var(--text2)}
+.role-dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}.topbar-time{font-family:var(--mono);font-size:11px;color:var(--text3)}
+.layout{display:flex;flex:1;overflow:hidden}
+.sidebar{width:240px;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto}
+.sidebar-section{padding:16px 0;border-bottom:1px solid var(--border)}
+.sidebar-label{padding:0 16px 6px;font-family:var(--mono);font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text3)}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 16px;cursor:pointer;transition:all .15s;border-left:2px solid transparent;font-size:13px;color:var(--text2)}
+.nav-item:hover{background:var(--bg3);color:var(--text)}.nav-item.active{background:var(--bg3);color:var(--accent);border-left-color:var(--accent)}
+.nav-icon{font-size:13px;width:18px;text-align:center;color:var(--text3)}.nav-item.active .nav-icon{color:var(--accent)}
+.vendor-node{border-bottom:1px solid var(--border)}
+.vendor-header{display:flex;align-items:center;gap:8px;padding:9px 14px;cursor:pointer;transition:all .15s;font-size:13px;color:var(--text2)}
+.vendor-header:hover{background:var(--bg3);color:var(--text)}.vendor-header.open{color:var(--text)}
+.vchev{font-size:8px;transition:transform .2s;margin-left:auto;color:var(--text3)}.vchev.open{transform:rotate(90deg)}
+.vendor-folders{display:none}.vendor-folders.open{display:block}
+.folder-item{display:flex;align-items:center;gap:8px;padding:6px 14px 6px 30px;cursor:pointer;font-size:12px;color:var(--text2);transition:all .15s;border-left:2px solid transparent}
+.folder-item:hover{background:var(--bg3)}.folder-item.active{background:var(--bg3)}
+.fi-in.active{color:var(--accent2);border-left-color:var(--accent2)}.fi-out.active{color:var(--accent);border-left-color:var(--accent)}
+.fi-catalog.active{color:var(--warn);border-left-color:var(--warn)}.fi-test.active{color:var(--text2);border-left-color:var(--text2)}
+.fbadge{margin-left:auto;font-family:var(--mono);font-size:9px;padding:1px 5px;background:var(--bg);border:1px solid var(--border2);color:var(--text3)}
+.main{flex:1;overflow-y:auto;padding:24px}
+.page-header{margin-bottom:20px}.page-title{font-size:20px;font-weight:600;margin-bottom:4px}.page-sub{font-family:var(--mono);font-size:11px;color:var(--text2)}
+.card{background:var(--bg2);border:1px solid var(--border);padding:20px;margin-bottom:16px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--border)}
+.card-title{font-family:var(--mono);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.btn{cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;padding:8px 16px;border:none;transition:all .2s}
+.btn-p{background:var(--accent);color:var(--bg)}.btn-p:hover{opacity:.85}
+.btn-s{background:transparent;border:1px solid var(--border2);color:var(--text2)}.btn-s:hover{border-color:var(--accent2);color:var(--accent2)}
+.btn-d{background:transparent;border:1px solid var(--danger);color:var(--danger);padding:4px 10px;font-size:10px;cursor:pointer;font-family:var(--mono);transition:all .2s}
+.btn-d:hover{background:var(--danger);color:#fff}
+.btn-dl{background:transparent;border:1px solid var(--accent2);color:var(--accent2);padding:4px 10px;font-size:10px;cursor:pointer;font-family:var(--mono);transition:all .2s}
+.btn-dl:hover{background:var(--accent2);color:#fff}
+.btn-sm{padding:5px 12px;background:transparent;border:1px solid var(--border2);color:var(--text2);font-family:var(--mono);font-size:11px;cursor:pointer;transition:all .2s}
+.btn-sm:hover{border-color:var(--accent);color:var(--accent)}
+.vendors-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px;margin-bottom:16px}
+.vcard{background:var(--bg2);border:1px solid var(--border);padding:16px;cursor:pointer;transition:all .2s;position:relative}
+.vcard:hover{border-color:var(--accent2);transform:translateY(-1px)}.vcard-name{font-size:15px;font-weight:600;margin-bottom:3px}
+.vcard-id{font-family:var(--mono);font-size:10px;color:var(--text3);margin-bottom:10px}
+.vcard-folders{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.fstat{background:var(--bg3);border:1px solid var(--border);padding:7px 9px;display:flex;align-items:center;justify-content:space-between}
+.fstat-name{font-family:var(--mono);font-size:10px;text-transform:uppercase;color:var(--text3)}
+.fstat-n{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--accent)}.fstat-n.z{color:var(--text3)}
+.vcard-acts{position:absolute;top:12px;right:12px;display:flex;gap:5px;opacity:0;transition:opacity .2s}.vcard:hover .vcard-acts{opacity:1}
+.folder-tabs{display:flex;margin-bottom:16px;border:1px solid var(--border)}
+.ftab{flex:1;padding:9px 6px;text-align:center;cursor:pointer;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);background:var(--bg2);border-right:1px solid var(--border);transition:all .15s}
+.ftab:last-child{border-right:none}.ftab:hover{background:var(--bg3);color:var(--text)}
+.ftab.active{background:var(--bg3)}
+#ftab-in.active{color:var(--accent2)}#ftab-out.active{color:var(--accent)}#ftab-catalog.active{color:var(--warn)}#ftab-test.active{color:var(--text2)}
+.tc{display:inline-block;margin-left:5px;background:var(--bg);border:1px solid var(--border2);font-size:9px;padding:1px 4px;color:var(--text3)}
+.drop-zone{border:2px dashed var(--border2);padding:24px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:10px}
+.drop-zone:hover,.drop-zone.dragover{border-color:var(--accent);background:rgba(0,212,170,.04)}
+.drop-zone input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-icon{font-size:22px;margin-bottom:5px;opacity:.4}.drop-text{font-family:var(--mono);font-size:12px;color:var(--text2)}.drop-sub{font-size:11px;color:var(--text3);margin-top:3px}
+.sb{padding:8px 12px;font-family:var(--mono);font-size:11px;margin-top:8px;background:var(--bg3);border:1px solid var(--border)}
+.sb.ok{border-color:var(--success);color:var(--success)}.sb.err{border-color:var(--danger);color:var(--danger)}.sb.load{border-color:var(--warn);color:var(--warn)}
+.ftable{width:100%;border-collapse:collapse}
+.ftable th{text-align:left;padding:7px 10px;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border)}
+.ftable td{padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px}.ftable tr:last-child td{border-bottom:none}.ftable tr:hover td{background:var(--bg3)}
+.fname{font-family:var(--mono);font-size:12px;color:var(--text)}.fsize,.fdate{font-family:var(--mono);font-size:11px;color:var(--text3)}.acts{display:flex;gap:5px}
+.empty{text-align:center;padding:32px;font-family:var(--mono);font-size:12px;color:var(--text3)}
+.conv-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.preview{background:var(--bg);border:1px solid var(--border);padding:14px;font-family:var(--mono);font-size:11px;color:var(--accent);white-space:pre-wrap;word-break:break-all;max-height:360px;overflow-y:auto;min-height:180px;line-height:1.6}
+.pph{color:var(--text3);font-style:italic}
+.bc{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-size:11px;color:var(--text3);margin-bottom:14px}
+.bc span{cursor:pointer;transition:color .15s}.bc span:hover{color:var(--accent)}.bc .bcsep{color:var(--border2)}.bc .bccur{color:var(--text2);cursor:default}
+/* SETTINGS */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.user-perm-card{background:var(--bg2);border:1px solid var(--border);padding:18px;margin-bottom:12px}
+.user-perm-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.user-perm-name{font-size:14px;font-weight:600}.user-perm-role{font-family:var(--mono);font-size:10px;text-transform:uppercase;padding:2px 7px;background:var(--bg3);border:1px solid var(--border2);color:var(--text2)}
+.perm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.perm-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:var(--bg3);border:1px solid var(--border);cursor:pointer;transition:all .2s;user-select:none}
+.perm-item:hover{border-color:var(--border2)}.perm-item.on{border-color:var(--accent);background:rgba(0,212,170,.06)}
+.perm-check{width:14px;height:14px;border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0}
+.perm-item.on .perm-check{background:var(--accent);border-color:var(--accent);color:var(--bg)}
+.perm-label{font-family:var(--mono);font-size:11px;color:var(--text2)}.perm-item.on .perm-label{color:var(--text)}
+.perm-section-label{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3);margin-bottom:6px;margin-top:10px}
+.tag{font-family:var(--mono);font-size:10px;padding:2px 7px;border:1px solid var(--border2);color:var(--text3);background:var(--bg3)}
+.tag.in{border-color:var(--accent2);color:var(--accent2)}.tag.out{border-color:var(--accent);color:var(--accent)}.tag.catalog{border-color:var(--warn);color:var(--warn)}.tag.test{border-color:var(--text2);color:var(--text2)}
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:50}.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border2);padding:30px;width:420px;position:relative;max-height:90vh;overflow-y:auto}
+.modal::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--accent2),var(--accent))}
+.modal-title{font-family:var(--mono);font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
+.modal-actions{display:flex;gap:8px;margin-top:20px;justify-content:flex-end}
+.hidden{display:none!important}.mt8{margin-top:8px}.mt16{margin-top:16px}
+.pdots::after{content:'...';animation:dots 1.2s infinite steps(4)}
+@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}100%{content:'...'}}
 </style>
 </head>
 <body>
 
-<!-- ═══ LOGIN ══════════════════════════════════════════════════════════════ -->
 <div id="login-screen">
   <div class="login-box">
-    <div class="scan-lines"></div>
-    <div class="login-logo">
-      <div class="login-logo-icon">EDI</div>
-      <div class="login-logo-text">EXCHANGE PORTAL<br>v1.0 · SECURE</div>
-    </div>
+    <div class="login-logo"><div class="login-logo-icon">EDI</div><div class="login-logo-text">EXCHANGE PORTAL<br>v2.0 &middot; SECURE</div></div>
     <div class="login-title">Trading Partner Access</div>
-    <div class="login-sub">// ANSI X12 · 850 · 997 · 855 · 810</div>
-    <div class="form-group">
-      <label>Username</label>
-      <input type="text" id="login-user" autocomplete="username" placeholder="username">
-    </div>
-    <div class="form-group">
-      <label>Password</label>
-      <input type="password" id="login-pass" autocomplete="current-password" placeholder="••••••••">
-    </div>
-    <button class="btn-login" onclick="doLogin()">Authenticate →</button>
-    <div class="login-error hidden" id="login-err"></div>
+    <div class="login-sub">// Vendor EDI Exchange System</div>
+    <div class="fg"><label>Username</label><input type="text" id="lu" placeholder="username"></div>
+    <div class="fg"><label>Password</label><input type="password" id="lp" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;"></div>
+    <button class="btn-login" onclick="doLogin()">Authenticate &rarr;</button>
+    <div class="login-error hidden" id="lerr"></div>
   </div>
 </div>
 
-<!-- ═══ APP ════════════════════════════════════════════════════════════════ -->
 <div id="app">
-  <!-- Topbar -->
   <div class="topbar">
-    <div class="topbar-logo">EDI PORTAL</div>
-    <div class="topbar-sep">|</div>
-    <div class="topbar-title">Trading Exchange System</div>
+    <div class="topbar-logo">EDI PORTAL</div><div class="topbar-sep">|</div><div class="topbar-sub">Vendor Exchange System</div>
     <div class="topbar-right">
       <div class="topbar-time" id="clock"></div>
-      <div class="user-badge">
-        <div class="role-dot"></div>
-        <span id="user-display">—</span>
-      </div>
+      <div class="user-badge"><div class="role-dot"></div><span id="udisplay">—</span></div>
       <button class="btn-sm" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
-
   <div class="layout">
-    <!-- Sidebar -->
     <div class="sidebar">
       <div class="sidebar-section">
-        <div class="sidebar-label">Main</div>
-        <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard">
-          <span class="nav-icon">▦</span> Dashboard
-        </div>
+        <div class="sidebar-label">Navigation</div>
+        <div class="nav-item active" onclick="showPage('dashboard')" data-page="dashboard"><span class="nav-icon">&#9638;</span> Dashboard</div>
+        <div class="nav-item hidden" onclick="showPage('converter')" data-page="converter" id="nav-conv"><span class="nav-icon">&#8635;</span> Invoice Converter</div>
       </div>
       <div class="sidebar-section">
-        <div class="sidebar-label">EDI Documents</div>
-        <div class="nav-item" onclick="showPage('edi')" data-page="edi">
-          <span class="nav-icon">⇌</span> File Exchange
-          <span class="nav-badge" id="nav-count-total">0</span>
-        </div>
-        <div class="nav-item" onclick="showPageEdi('850')" data-page="850">
-          <span class="nav-icon" style="color:var(--accent2)">850</span> Purchase Orders
-          <span class="nav-badge" id="nav-850">0</span>
-        </div>
-        <div class="nav-item" onclick="showPageEdi('997')" data-page="997">
-          <span class="nav-icon" style="color:var(--success)">997</span> Func. Ack.
-          <span class="nav-badge" id="nav-997">0</span>
-        </div>
-        <div class="nav-item" onclick="showPageEdi('855')" data-page="855">
-          <span class="nav-icon" style="color:var(--warn)">855</span> PO Ack.
-          <span class="nav-badge" id="nav-855">0</span>
-        </div>
-        <div class="nav-item" onclick="showPageEdi('810')" data-page="810">
-          <span class="nav-icon" style="color:var(--accent)">810</span> Invoices
-          <span class="nav-badge" id="nav-810">0</span>
-        </div>
-        <div class="nav-item" onclick="showPageEdi('catalog')" data-page="catalog">
-          <span class="nav-icon" style="color:var(--text2)">CAT</span> Catalog Flat Files
-          <span class="nav-badge warn" id="nav-cat">0</span>
-        </div>
+        <div class="sidebar-label">Vendors <span id="vcnt" style="color:var(--text3);font-size:10px"></span></div>
+        <div id="vtree"></div>
+        <div class="nav-item hidden" onclick="openAddVendor()" id="nav-addv"><span class="nav-icon" style="color:var(--accent)">+</span> Add Vendor</div>
       </div>
-      <div class="sidebar-section">
-        <div class="sidebar-label">Tools</div>
-        <div class="nav-item" onclick="showPage('converter')" data-page="converter">
-          <span class="nav-icon">⟳</span> Invoice Converter
-        </div>
-        <div class="nav-item" onclick="showPage('reference')" data-page="reference">
-          <span class="nav-icon">?</span> EDI Reference
-        </div>
-      </div>
-      <div class="sidebar-section" id="admin-nav">
+      <div class="sidebar-section hidden" id="admin-nav">
         <div class="sidebar-label">Admin</div>
-        <div class="nav-item" onclick="showPage('users')" data-page="users">
-          <span class="nav-icon">◉</span> Users
-        </div>
-        <div class="nav-item" onclick="showPage('logs')" data-page="logs">
-          <span class="nav-icon">≡</span> Audit Log
-        </div>
+        <div class="nav-item" onclick="showPage('settings')" data-page="settings"><span class="nav-icon">&#9881;</span> Settings</div>
+        <div class="nav-item" onclick="showPage('logs')" data-page="logs"><span class="nav-icon">&#8801;</span> Audit Log</div>
       </div>
     </div>
 
-    <!-- Main -->
-    <div class="main" id="main-content">
-
-      <!-- ── DASHBOARD ── -->
+    <div class="main">
+      <!-- DASHBOARD -->
       <div id="page-dashboard" class="page">
-        <div class="page-header">
-          <div class="page-title">Dashboard</div>
-          <div class="page-sub">// EDI trading partner exchange overview</div>
+        <div class="page-header"><div class="page-title">Dashboard</div><div class="page-sub">// Vendor EDI file exchange overview</div></div>
+        <div id="dash-vendors" class="vendors-grid"></div>
+        <div id="dash-empty" class="hidden" style="text-align:center;padding:48px;font-family:var(--mono);font-size:13px;color:var(--text3)">No vendors yet. Click <strong style="color:var(--accent)">+ Add Vendor</strong> in the sidebar.</div>
+      </div>
+
+      <!-- FILE MANAGER -->
+      <div id="page-files" class="page hidden">
+        <div class="bc">
+          <span onclick="showPage('dashboard')">Dashboard</span><span class="bcsep">/</span>
+          <span id="bc-v" onclick="openVendorFolder(curVendor,'in')"></span><span class="bcsep">/</span>
+          <span class="bccur" id="bc-f"></span>
         </div>
-        <div class="stats-grid">
-          <div class="stat-box" data-type="850">
-            <div class="stat-num" id="stat-850">0</div>
-            <div class="stat-label">850</div>
-            <div class="stat-desc">Purchase Orders</div>
-          </div>
-          <div class="stat-box" data-type="997">
-            <div class="stat-num" id="stat-997">0</div>
-            <div class="stat-label">997</div>
-            <div class="stat-desc">Func. Acknowledgements</div>
-          </div>
-          <div class="stat-box" data-type="855">
-            <div class="stat-num" id="stat-855">0</div>
-            <div class="stat-label">855</div>
-            <div class="stat-desc">PO Acknowledgements</div>
-          </div>
-          <div class="stat-box" data-type="810">
-            <div class="stat-num" id="stat-810">0</div>
-            <div class="stat-label">810</div>
-            <div class="stat-desc">Invoices</div>
-          </div>
-          <div class="stat-box" data-type="CAT">
-            <div class="stat-num" id="stat-cat">0</div>
-            <div class="stat-label">CATALOG</div>
-            <div class="stat-desc">Flat Files</div>
-          </div>
+        <div class="page-header" style="margin-bottom:10px"><div class="page-title" id="ftitle">Files</div><div class="page-sub" id="fsub"></div></div>
+        <div class="folder-tabs">
+          <div class="ftab active" onclick="switchFolder('in')"      id="ftab-in">     IN      <span class="tc" id="fc-in">0</span></div>
+          <div class="ftab"        onclick="switchFolder('out')"     id="ftab-out">    OUT     <span class="tc" id="fc-out">0</span></div>
+          <div class="ftab"        onclick="switchFolder('catalog')" id="ftab-catalog">CATALOG <span class="tc" id="fc-catalog">0</span></div>
+          <div class="ftab"        onclick="switchFolder('test')"    id="ftab-test">   TEST    <span class="tc" id="fc-test">0</span></div>
         </div>
         <div class="card">
-          <div class="card-header">
-            <div class="card-title">EDI Transaction Flow</div>
-          </div>
-          <div style="padding: 12px 0; font-family: var(--mono); font-size: 12px; line-height: 2; color: var(--text2);">
-            <div style="display:grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center; max-width: 600px;">
-              <div style="color:var(--text3); font-size:10px; text-transform:uppercase; letter-spacing:.1em;">OrderDog POS</div>
-              <div></div>
-              <div style="color:var(--text3); font-size:10px; text-transform:uppercase; letter-spacing:.1em; text-align:right;">Your Store</div>
-              
-              <div style="background:rgba(0,152,212,0.1); border:1px solid var(--accent2); padding:6px 10px; color:var(--accent2);">850 Purchase Order</div>
-              <div style="color:var(--accent2); text-align:center;">──▶</div>
-              <div style="color:var(--text3); text-align:right; font-size:11px;">Receive PO from POS</div>
-              
-              <div style="color:var(--text3); text-align:left; font-size:11px;">Acknowledge receipt</div>
-              <div style="color:var(--success); text-align:center;">◀──</div>
-              <div style="background:rgba(16,185,129,0.1); border:1px solid var(--success); padding:6px 10px; color:var(--success); text-align:right;">997 Func. Ack.</div>
-              
-              <div style="color:var(--text3); text-align:left; font-size:11px;">Can you fulfill?</div>
-              <div style="color:var(--warn); text-align:center;">◀──</div>
-              <div style="background:rgba(245,158,11,0.1); border:1px solid var(--warn); padding:6px 10px; color:var(--warn); text-align:right;">855 PO Ack.</div>
-              
-              <div style="color:var(--text3); text-align:left; font-size:11px;">Invoice for payment</div>
-              <div style="color:var(--accent); text-align:center;">◀──</div>
-              <div style="background:rgba(0,212,170,0.1); border:1px solid var(--accent); padding:6px 10px; color:var(--accent); text-align:right;">810 Invoice</div>
-              
-              <div style="color:var(--text3); text-align:left; font-size:11px;">Daily pickup</div>
-              <div style="color:var(--text3); text-align:center;">◀──</div>
-              <div style="background:var(--bg3); border:1px solid var(--border2); padding:6px 10px; color:var(--text2); text-align:right;">Catalog Flat File</div>
+          <div class="card-header"><div class="card-title" id="foldertitle">Files</div><div style="font-family:var(--mono);font-size:10px;color:var(--text3)" id="folderdir"></div></div>
+          <div id="upload-area">
+            <div class="drop-zone" onclick="document.getElementById('finput').click()">
+              <input type="file" id="finput" onchange="uploadFile(this)">
+              <div class="drop-icon">&#11014;</div>
+              <div class="drop-text">Drop file here or click to browse</div>
+              <div class="drop-sub">.edi &middot; .x12 &middot; .txt &middot; .csv &middot; .xlsx</div>
             </div>
+            <div class="sb hidden" id="upstatus"></div>
           </div>
-        </div>
-        <div class="card">
-          <div class="card-header"><div class="card-title">Quick Actions</div></div>
-          <div style="display:flex; gap:10px; flex-wrap:wrap;">
-            <button class="btn-primary" onclick="showPageEdi('850')">↓ View Purchase Orders</button>
-            <button class="btn-primary" onclick="showPageEdi('810')">↑ Upload Invoice (810)</button>
-            <button class="btn-secondary" onclick="showPage('converter')">⟳ Convert Invoice → EDI</button>
-            <button class="btn-secondary" onclick="loadStats()">↺ Refresh Stats</button>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <span style="font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text3)">Files</span>
+            <button class="btn-sm" onclick="loadFiles()">&#8634; Refresh</button>
           </div>
+          <div id="flist"><div class="empty"><div style="font-size:26px;opacity:.3;margin-bottom:8px">&#9647;</div>No files yet</div></div>
         </div>
       </div>
 
-      <!-- ── EDI EXCHANGE ── -->
-      <div id="page-edi" class="page hidden">
-        <div class="page-header">
-          <div class="page-title">EDI File Exchange</div>
-          <div class="page-sub">// Upload, download & manage EDI transaction sets</div>
-        </div>
-        <div class="type-grid">
-          <div class="type-btn active" onclick="switchEdiType('850')" id="tab-850">
-            <span class="tnum">850</span><span class="tdesc">Purchase Order</span>
-          </div>
-          <div class="type-btn" onclick="switchEdiType('997')" id="tab-997">
-            <span class="tnum">997</span><span class="tdesc">Func. Ack.</span>
-          </div>
-          <div class="type-btn" onclick="switchEdiType('855')" id="tab-855">
-            <span class="tnum">855</span><span class="tdesc">PO Ack.</span>
-          </div>
-          <div class="type-btn" onclick="switchEdiType('810')" id="tab-810">
-            <span class="tnum">810</span><span class="tdesc">Invoice</span>
-          </div>
-          <div class="type-btn" onclick="switchEdiType('catalog')" id="tab-catalog">
-            <span class="tnum" style="font-size:14px">CAT</span><span class="tdesc">Catalog Flat</span>
-          </div>
-        </div>
-        
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title" id="edi-card-title">850 · Purchase Orders</div>
-            <div style="font-family:var(--mono); font-size:10px; color:var(--text3)" id="edi-direction"></div>
-          </div>
-          
-          <!-- Upload -->
-          <div class="drop-zone" id="edi-drop" onclick="document.getElementById('edi-file-input').click()">
-            <input type="file" id="edi-file-input" accept=".edi,.txt,.x12,.dat,.csv" onchange="uploadEdiFile(this)">
-            <div class="drop-icon">⬆</div>
-            <div class="drop-text">Drop EDI file here or click to browse</div>
-            <div class="drop-sub">.edi · .x12 · .txt · .dat · .csv</div>
-          </div>
-          <div class="status-bar hidden" id="edi-upload-status"></div>
-          
-          <!-- File list -->
-          <div class="mt16">
-            <div class="file-toolbar">
-              <span style="font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--text3)">Files</span>
-              <button class="btn-sm" onclick="loadEdiFiles(currentEdiType)" style="margin-left:auto">↺ Refresh</button>
-            </div>
-            <div id="edi-file-list">
-              <div class="empty-state"><div class="empty-icon">◫</div>No files yet</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── INVOICE CONVERTER ── -->
+      <!-- CONVERTER -->
       <div id="page-converter" class="page hidden">
-        <div class="page-header">
-          <div class="page-title">Invoice → EDI 810 Converter</div>
-          <div class="page-sub">// AI-powered conversion of PDF or CSV invoices to ANSI X12 810</div>
-        </div>
-        <div class="converter-grid">
+        <div class="page-header"><div class="page-title">Invoice &rarr; EDI 810 Converter</div><div class="page-sub">// AI converts vendor invoices to ANSI X12 810 &middot; saves to vendor Out folder</div></div>
+        <div class="conv-grid">
           <div>
             <div class="card">
               <div class="card-header"><div class="card-title">Upload Invoice</div></div>
-              <div class="drop-zone" id="inv-drop" onclick="document.getElementById('inv-input').click()">
-                <input type="file" id="inv-input" accept=".pdf,.csv,.xlsx,.txt,.png,.jpg" onchange="handleInvoiceSelect(this)">
-                <div class="drop-icon">📄</div>
-                <div class="drop-text">Drop invoice file here</div>
-                <div class="drop-sub">PDF · CSV · Excel · Image</div>
+              <div class="fg"><label>Vendor</label><select id="conv-vendor"><option value="">-- Select vendor --</option></select></div>
+              <div class="drop-zone" onclick="document.getElementById('iinput').click()">
+                <input type="file" id="iinput" accept=".pdf,.csv,.xlsx,.txt,.png,.jpg" onchange="handleInvSelect(this)">
+                <div class="drop-icon">&#128196;</div>
+                <div class="drop-text">Drop invoice here or click to browse</div>
+                <div class="drop-sub">PDF &middot; CSV &middot; Excel &middot; Image</div>
               </div>
-              <div id="inv-file-info" class="hidden mt8" style="font-family:var(--mono); font-size:11px; color:var(--text2); padding:8px; background:var(--bg3); border:1px solid var(--border);">
-                Selected: <span id="inv-filename"></span>
-              </div>
-              <div class="mt8">
-                <button class="btn-primary" onclick="convertInvoice()" id="btn-convert" style="width:100%">
-                  ⟳ Convert to EDI 810
-                </button>
-              </div>
-              <div class="status-bar hidden mt8" id="inv-status"></div>
+              <div id="iinfo" class="hidden mt8" style="font-family:var(--mono);font-size:11px;color:var(--text2);padding:8px;background:var(--bg3);border:1px solid var(--border)">Selected: <span id="ifname"></span></div>
+              <div class="mt8"><button class="btn btn-p" onclick="convertInvoice()" id="btnconv" style="width:100%">&#8635; Convert to EDI 810</button></div>
+              <div class="sb hidden mt8" id="istatus"></div>
             </div>
-            <div class="card mt8">
+            <div class="card">
               <div class="card-header"><div class="card-title">How It Works</div></div>
-              <div style="font-size:12px; color:var(--text2); line-height:1.8; font-family:var(--mono);">
-                1. Upload your vendor invoice (PDF or CSV)<br>
-                2. AI reads and extracts line items, pricing, dates<br>
-                3. Generates compliant ANSI X12 810 EDI file<br>
-                4. File is saved to 810/ folder automatically<br>
-                5. OrderDog POS can immediately download it
+              <div style="font-size:12px;color:var(--text2);line-height:1.9;font-family:var(--mono)">
+                1. Select vendor from dropdown<br>
+                2. Upload their invoice (PDF or CSV)<br>
+                3. AI extracts line items, UPCs, pricing<br>
+                4. Generates compliant ANSI X12 810<br>
+                5. Auto-saves to <strong style="color:var(--accent)">Vendor &rarr; Out</strong><br>
+                6. OrderDog logs in and downloads it
               </div>
             </div>
           </div>
           <div>
-            <div class="card" style="height:100%">
+            <div class="card" style="height:calc(100% - 16px)">
               <div class="card-header">
                 <div class="card-title">Generated EDI 810 Preview</div>
-                <button class="btn-sm hidden" id="btn-save-810" onclick="goTo810()">View in 810 →</button>
+                <button class="btn-sm hidden" id="btn810" onclick="goToOut()">View in Out &rarr;</button>
               </div>
-              <div class="preview-box" id="edi-preview">
-                <span class="preview-placeholder">// Output will appear here after conversion...</span>
-              </div>
+              <div class="preview" id="preview"><span class="pph">// Output will appear here after conversion...</span></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- ── REFERENCE ── -->
-      <div id="page-reference" class="page hidden">
-        <div class="page-header">
-          <div class="page-title">EDI Reference</div>
-          <div class="page-sub">// ANSI X12 transaction set documentation</div>
-        </div>
-        <div class="ref-grid">
-          <div class="ref-item">
-            <div class="ref-num">850</div>
-            <div class="ref-name">Purchase Order</div>
-            <div class="ref-desc">Sent by OrderDog POS to your portal. Contains items to be ordered, quantities, pricing, delivery date, and shipping terms.</div>
-            <div class="ref-flow">DIRECTION: OrderDog → You</div>
+      <!-- SETTINGS -->
+      <div id="page-settings" class="page hidden">
+        <div class="page-header"><div class="page-title">Settings</div><div class="page-sub">// Manage vendors, users, and permissions</div></div>
+        <div class="settings-grid">
+          <!-- LEFT: Vendors -->
+          <div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Vendors</div>
+                <button class="btn btn-p" onclick="openAddVendor()">+ Add Vendor</button>
+              </div>
+              <div id="settings-vendors-list"></div>
+            </div>
           </div>
-          <div class="ref-item">
-            <div class="ref-num" style="color:var(--success)">997</div>
-            <div class="ref-name">Functional Acknowledgement</div>
-            <div class="ref-desc">Confirms receipt and syntactic validity of any inbound EDI transaction. Must be sent back to OrderDog after receiving an 850.</div>
-            <div class="ref-flow">DIRECTION: You → OrderDog</div>
-          </div>
-          <div class="ref-item">
-            <div class="ref-num" style="color:var(--warn)">855</div>
-            <div class="ref-name">Purchase Order Acknowledgement</div>
-            <div class="ref-desc">Responds to the 850 with acceptance, rejection, or modification. Tells OrderDog whether you can fulfill the order as requested.</div>
-            <div class="ref-flow">DIRECTION: You → OrderDog</div>
-          </div>
-          <div class="ref-item">
-            <div class="ref-num">810</div>
-            <div class="ref-name">Invoice</div>
-            <div class="ref-desc">Electronic invoice submitted to OrderDog after fulfillment. Replaces paper invoices. Use the Invoice Converter tool to auto-generate from PDF/CSV.</div>
-            <div class="ref-flow">DIRECTION: You → OrderDog</div>
-          </div>
-        </div>
-        <div class="card mt16">
-          <div class="card-header"><div class="card-title">Catalog Flat File (Daily FTP)</div></div>
-          <div style="font-size:13px; color:var(--text2); line-height:1.8;">
-            OrderDog picks up a daily flat file from this server. The file should be a <strong style="color:var(--text)">pipe-delimited (|) or tab-delimited .txt / .csv</strong> with the following recommended columns:
-            <br><br>
-            <code style="font-family:var(--mono); font-size:11px; background:var(--bg3); padding:12px; display:block; border:1px solid var(--border); color:var(--accent)">
-UPC | ITEM_DESC | PACK_SIZE | UNIT_COST | RETAIL_PRICE | CATEGORY | VENDOR_CODE | ACTIVE
-012345678901 | PEPSI 20OZ | 24 | 14.40 | 1.99 | BEVERAGES | PEPSI | 1
-            </code>
-            <br>
-            Upload your catalog file to the <strong style="color:var(--accent)">Catalog Flat Files</strong> section. OrderDog polls this portal daily to pick it up.
+          <!-- RIGHT: Users & Permissions -->
+          <div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Users &amp; Permissions</div>
+                <button class="btn btn-p" onclick="document.getElementById('modal-add-user').classList.add('open')">+ Add User</button>
+              </div>
+              <div id="settings-users-list"></div>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- ── USERS ── -->
-      <div id="page-users" class="page hidden">
-        <div class="page-header">
-          <div class="page-title">User Management</div>
-          <div class="page-sub">// Admin only — manage portal access</div>
-        </div>
-        <div class="card">
-          <div class="card-header">
-            <div class="card-title">Users</div>
-            <button class="btn-primary" onclick="document.getElementById('modal-add-user').classList.add('open')">+ Add User</button>
-          </div>
-          <table class="file-table" id="users-table">
-            <thead><tr><th>Username</th><th>Name</th><th>Role</th><th>Actions</th></tr></thead>
-            <tbody id="users-tbody"></tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- ── LOGS ── -->
+      <!-- LOGS -->
       <div id="page-logs" class="page hidden">
-        <div class="page-header">
-          <div class="page-title">Audit Log</div>
-          <div class="page-sub">// All portal activity · last 200 entries</div>
-        </div>
+        <div class="page-header"><div class="page-title">Audit Log</div><div class="page-sub">// All portal activity</div></div>
         <div class="card">
-          <div class="card-header">
-            <div class="card-title">Activity Log</div>
-            <button class="btn-sm" onclick="loadLogs()">↺ Refresh</button>
-          </div>
-          <table class="file-table">
-            <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Detail</th></tr></thead>
-            <tbody id="logs-tbody"></tbody>
-          </table>
+          <div class="card-header"><div class="card-title">Activity</div><button class="btn-sm" onclick="loadLogs()">&#8634; Refresh</button></div>
+          <table class="ftable"><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Detail</th></tr></thead><tbody id="logsbody"></tbody></table>
         </div>
       </div>
+    </div>
+  </div>
+</div>
 
-    </div><!-- /main -->
-  </div><!-- /layout -->
-</div><!-- /app -->
+<!-- Add Vendor Modal -->
+<div class="modal-overlay" id="modal-addv">
+  <div class="modal">
+    <div class="modal-title">Add Vendor</div>
+    <div class="fg"><label>Vendor Name</label><input type="text" id="newvname" placeholder="e.g. Core-Mark, Eby-Brown..."></div>
+    <div style="font-size:12px;color:var(--text2);font-family:var(--mono);margin-bottom:4px">Folders created automatically: IN &middot; OUT &middot; CATALOG &middot; TEST</div>
+    <div class="modal-actions">
+      <button class="btn btn-s" onclick="document.getElementById('modal-addv').classList.remove('open')">Cancel</button>
+      <button class="btn btn-p" onclick="addVendor()">Add Vendor</button>
+    </div>
+  </div>
+</div>
 
-<!-- ── Add User Modal ── -->
+<!-- Add User Modal -->
 <div class="modal-overlay" id="modal-add-user">
   <div class="modal">
     <div class="modal-title">Add User</div>
-    <div class="form-group"><label>Username</label><input type="text" id="new-username"></div>
-    <div class="form-group"><label>Full Name</label><input type="text" id="new-name"></div>
-    <div class="form-group"><label>Password</label><input type="password" id="new-password"></div>
-    <div class="form-group">
-      <label>Role</label>
-      <select id="new-role" style="width:100%;padding:10px 14px;background:var(--bg3);border:1px solid var(--border2);color:var(--text);font-family:var(--mono);font-size:13px;outline:none;">
-        <option value="pos">POS Provider</option>
-        <option value="admin">Admin</option>
+    <div class="fg"><label>Username</label><input type="text" id="nu-username"></div>
+    <div class="fg"><label>Full Name</label><input type="text" id="nu-name"></div>
+    <div class="fg"><label>Password</label><input type="password" id="nu-password"></div>
+    <div class="fg"><label>Role</label>
+      <select id="nu-role" onchange="updateNewUserPermUI()">
+        <option value="pos">POS Provider (download only)</option>
+        <option value="admin">Admin (full access)</option>
       </select>
     </div>
+    <div id="nu-perms-area">
+      <div class="perm-section-label">Folder Access</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+        <div class="perm-item on" id="nup-in"      onclick="toggleNewPerm('in')">     <div class="perm-check">&#10003;</div><span class="perm-label"><span class="tag in">IN</span></span></div>
+        <div class="perm-item on" id="nup-out"     onclick="toggleNewPerm('out')">    <div class="perm-check">&#10003;</div><span class="perm-label"><span class="tag out">OUT</span></span></div>
+        <div class="perm-item on" id="nup-catalog" onclick="toggleNewPerm('catalog')"><div class="perm-check">&#10003;</div><span class="perm-label"><span class="tag catalog">CATALOG</span></span></div>
+        <div class="perm-item on" id="nup-test"    onclick="toggleNewPerm('test')">   <div class="perm-check">&#10003;</div><span class="perm-label"><span class="tag test">TEST</span></span></div>
+      </div>
+      <div class="perm-section-label">Actions</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+        <div class="perm-item" id="nup-upload" onclick="toggleNewPerm('upload')"><div class="perm-check"></div><span class="perm-label">Can Upload</span></div>
+        <div class="perm-item" id="nup-delete" onclick="toggleNewPerm('delete')"><div class="perm-check"></div><span class="perm-label">Can Delete</span></div>
+      </div>
+    </div>
     <div class="modal-actions">
-      <button class="btn-secondary" onclick="document.getElementById('modal-add-user').classList.remove('open')">Cancel</button>
-      <button class="btn-primary" onclick="addUser()">Create User</button>
+      <button class="btn btn-s" onclick="document.getElementById('modal-add-user').classList.remove('open')">Cancel</button>
+      <button class="btn btn-p" onclick="addUser()">Create User</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Permissions Modal -->
+<div class="modal-overlay" id="modal-perms">
+  <div class="modal">
+    <div class="modal-title">Edit Permissions — <span id="perms-username"></span></div>
+    <div class="perm-section-label">Folder Access</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px">
+      <div class="perm-item" id="pp-in"      onclick="togglePerm('in')">     <div class="perm-check"></div><span class="perm-label"><span class="tag in">IN</span> &mdash; Receive files</span></div>
+      <div class="perm-item" id="pp-out"     onclick="togglePerm('out')">    <div class="perm-check"></div><span class="perm-label"><span class="tag out">OUT</span> &mdash; Send files</span></div>
+      <div class="perm-item" id="pp-catalog" onclick="togglePerm('catalog')"><div class="perm-check"></div><span class="perm-label"><span class="tag catalog">CATALOG</span> &mdash; Product data</span></div>
+      <div class="perm-item" id="pp-test"    onclick="togglePerm('test')">   <div class="perm-check"></div><span class="perm-label"><span class="tag test">TEST</span> &mdash; Test files</span></div>
+    </div>
+    <div class="perm-section-label">Actions</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+      <div class="perm-item" id="pp-upload" onclick="togglePerm('upload')"><div class="perm-check"></div><span class="perm-label">Can Upload Files</span></div>
+      <div class="perm-item" id="pp-delete" onclick="togglePerm('delete')"><div class="perm-check"></div><span class="perm-label">Can Delete Files</span></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-s" onclick="document.getElementById('modal-perms').classList.remove('open')">Cancel</button>
+      <button class="btn btn-p" onclick="savePerms()">Save Permissions</button>
     </div>
   </div>
 </div>
 
 <script>
-// ─── State ────────────────────────────────────────────────────────────────────
-let currentUser = null;
-let currentEdiType = '850';
-let selectedInvoiceFile = null;
+var G={user:null,vendors:[],stats:{},curVendor:null,curFolder:'in',lastConvVendor:null,selInvFile:null,editPermUserId:null};
+var curVendor=null,curFolder='in';
+var FM={in:{label:'IN',desc:'Files received from vendor (850 Purchase Orders)',dir:'Vendor to You'},out:{label:'OUT',desc:'Files sent to OrderDog (997, 855, 810 Invoices)',dir:'You to OrderDog'},catalog:{label:'CATALOG',desc:'Product catalog flat files for OrderDog daily pickup',dir:'You to OrderDog'},test:{label:'TEST',desc:'Test transaction files',dir:'Testing'}};
 
-// ─── EDI type metadata ────────────────────────────────────────────────────────
-const EDI_META = {
-  '850':     { title: '850 · Purchase Orders',         dir: 'OrderDog → You',  color: '#0098d4' },
-  '997':     { title: '997 · Functional Ack.',          dir: 'You → OrderDog',  color: '#10b981' },
-  '855':     { title: '855 · PO Acknowledgements',      dir: 'You → OrderDog',  color: '#f59e0b' },
-  '810':     { title: '810 · Invoices',                 dir: 'You → OrderDog',  color: '#00d4aa' },
-  'catalog': { title: 'CATALOG · Flat Files',           dir: 'You → OrderDog (daily pickup)', color: '#7a8499' },
-};
+setInterval(function(){document.getElementById('clock').textContent=new Date().toLocaleTimeString('en-US',{hour12:false});},1000);
+document.getElementById('lp').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
+document.getElementById('lu').addEventListener('keydown',function(e){if(e.key==='Enter')document.getElementById('lp').focus();});
 
-// ─── Clock ────────────────────────────────────────────────────────────────────
-function tickClock() {
-  document.getElementById('clock').textContent = new Date().toLocaleTimeString('en-US', { hour12: false });
-}
-setInterval(tickClock, 1000); tickClock();
-
-// ─── Login ────────────────────────────────────────────────────────────────────
-document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-document.getElementById('login-user').addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('login-pass').focus(); });
-
-async function doLogin() {
-  const username = document.getElementById('login-user').value.trim();
-  const password = document.getElementById('login-pass').value;
-  const err = document.getElementById('login-err');
+async function doLogin(){
+  var u=document.getElementById('lu').value.trim(),p=document.getElementById('lp').value,err=document.getElementById('lerr');
   err.classList.add('hidden');
-  try {
-    const res = await fetch('/api/login', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
-    });
-    const data = await res.json();
-    if (!res.ok) { err.textContent = data.error || 'Login failed'; err.classList.remove('hidden'); return; }
-    currentUser = data;
-    document.getElementById('user-display').textContent = `${data.name} [${data.role.toUpperCase()}]`;
-    document.getElementById('login-screen').style.display = 'none';
+  try{
+    var r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({username:u,password:p})}),d=await r.json();
+    if(!r.ok){err.textContent=d.error||'Login failed';err.classList.remove('hidden');return;}
+    G.user=d;
+    document.getElementById('udisplay').textContent=d.name+' ['+d.role.toUpperCase()+']';
+    document.getElementById('login-screen').style.display='none';
     document.getElementById('app').classList.add('visible');
-    if (data.role !== 'admin') document.getElementById('admin-nav').style.display = 'none';
-    await loadStats();
-    showPage('dashboard');
-  } catch { err.textContent = 'Connection error'; err.classList.remove('hidden'); }
+    if(d.role==='admin'){document.getElementById('admin-nav').classList.remove('hidden');document.getElementById('nav-addv').classList.remove('hidden');document.getElementById('nav-conv').classList.remove('hidden');}
+    await loadAll();showPage('dashboard');
+  }catch(e){err.textContent='Connection error';err.classList.remove('hidden');}
+}
+async function doLogout(){await fetch('/api/logout',{method:'POST'});location.reload();}
+async function loadAll(){await loadVendors();await loadStats();renderSidebar();renderDashboard();populateConvVendors();}
+async function loadVendors(){var r=await fetch('/api/vendors');G.vendors=await r.json();document.getElementById('vcnt').textContent='('+G.vendors.length+')';}
+async function loadStats(){var r=await fetch('/api/stats');G.stats=await r.json();}
+
+function renderSidebar(){
+  var t=document.getElementById('vtree');
+  if(!G.vendors.length){t.innerHTML='<div style="padding:8px 16px;font-family:var(--mono);font-size:11px;color:var(--text3)">No vendors yet</div>';return;}
+  t.innerHTML=G.vendors.map(function(v){
+    var s=G.stats[v.id]||{},isO=curVendor===v.id;
+    return '<div class="vendor-node"><div class="vendor-header '+(isO?'open':'')+'" onclick="toggleVTree(\''+v.id+'\')">'+
+      '<span style="font-size:10px;color:var(--text3)">&#9654;</span>'+
+      '<span style="font-size:13px">'+esc(v.name)+'</span>'+
+      '<span class="vchev '+(isO?'open':'')+'">&#9658;</span></div>'+
+      '<div class="vendor-folders '+(isO?'open':'')+'" id="vf-'+v.id+'">'+
+      ['in','out','catalog','test'].map(function(f){
+        var cnt=s[f]||0,isA=curVendor===v.id&&curFolder===f;
+        return '<div class="folder-item fi-'+f+' '+(isA?'active':'')+'" onclick="openVF(\''+v.id+'\',\''+f+'\')">'+
+          '<span style="font-size:11px">'+{in:'&#128229;',out:'&#128228;',catalog:'&#128230;',test:'&#129514;'}[f]+'</span>'+
+          '<span>'+FM[f].label+'</span><span class="fbadge">'+cnt+'</span></div>';
+      }).join('')+'</div></div>';
+  }).join('');
 }
 
-async function doLogout() {
-  await fetch('/api/logout', { method: 'POST' });
-  location.reload();
+function toggleVTree(vid){
+  var el=document.getElementById('vf-'+vid),isO=el.classList.contains('open');
+  document.querySelectorAll('.vendor-folders').forEach(function(x){x.classList.remove('open');});
+  document.querySelectorAll('.vchev').forEach(function(x){x.classList.remove('open');});
+  document.querySelectorAll('.vendor-header').forEach(function(x){x.classList.remove('open');});
+  if(!isO){el.classList.add('open');el.previousElementSibling.querySelector('.vchev').classList.add('open');el.previousElementSibling.classList.add('open');}
 }
 
-// ─── Navigation ───────────────────────────────────────────────────────────────
-function showPage(name) {
-  document.querySelectorAll('.page').forEach(p => p.classList.add('hidden'));
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const page = document.getElementById('page-' + name);
-  if (page) page.classList.remove('hidden');
-  const nav = document.querySelector(`[data-page="${name}"]`);
-  if (nav) nav.classList.add('active');
-  if (name === 'users') loadUsers();
-  if (name === 'logs') loadLogs();
+function renderDashboard(){
+  var g=document.getElementById('dash-vendors'),e=document.getElementById('dash-empty');
+  if(!G.vendors.length){g.innerHTML='';e.classList.remove('hidden');return;}
+  e.classList.add('hidden');
+  g.innerHTML=G.vendors.map(function(v){
+    var s=G.stats[v.id]||{};
+    return '<div class="vcard" onclick="openVF(\''+v.id+'\',\'in\')">'+
+      (G.user&&G.user.role==='admin'?'<div class="vcard-acts"><button class="btn-d" onclick="event.stopPropagation();delVendor(\''+v.id+'\',\''+esc(v.name)+'\')">Remove</button></div>':'')+
+      '<div class="vcard-name">'+esc(v.name)+'</div>'+
+      '<div class="vcard-id">ID: '+v.id+'</div>'+
+      '<div class="vcard-folders">'+
+      ['in','out','catalog','test'].map(function(f){var n=s[f]||0;return '<div class="fstat"><span class="fstat-name">'+FM[f].label+'</span><span class="fstat-n '+(n===0?'z':'')+'">'+n+'</span></div>';}).join('')+
+      '</div></div>';
+  }).join('');
 }
 
-function showPageEdi(type) {
-  currentEdiType = type;
-  showPage('edi');
-  switchEdiType(type);
-  // highlight correct nav
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-  const nav = document.querySelector(`[data-page="${type}"]`);
-  if (nav) nav.classList.add('active');
+function openVF(vid,folder){
+  curVendor=vid;curFolder=folder;
+  showPage('files');updateFolderUI();loadFiles();renderSidebar();
 }
 
-function switchEdiType(type) {
-  currentEdiType = type;
-  document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
-  const tab = document.getElementById('tab-' + type);
-  if (tab) tab.classList.add('active');
-  const meta = EDI_META[type] || {};
-  document.getElementById('edi-card-title').textContent = meta.title || type;
-  document.getElementById('edi-direction').textContent = meta.dir || '';
-  loadEdiFiles(type);
+function updateFolderUI(){
+  var v=G.vendors.find(function(x){return x.id===curVendor;})||{},fm=FM[curFolder];
+  document.getElementById('ftitle').textContent=(v.name||'')+' \u2014 '+fm.label;
+  document.getElementById('fsub').textContent='// '+fm.desc;
+  document.getElementById('bc-v').textContent=v.name||'';
+  document.getElementById('bc-f').textContent=fm.label;
+  document.getElementById('foldertitle').textContent=fm.label+' Folder';
+  document.getElementById('folderdir').textContent=fm.dir;
+  ['in','out','catalog','test'].forEach(function(f){
+    document.getElementById('ftab-'+f).classList.toggle('active',f===curFolder);
+    var s=G.stats[curVendor]||{};
+    document.getElementById('fc-'+f).textContent=s[f]||0;
+  });
+  var canUp=G.user&&(G.user.role==='admin'||(G.user.permissions&&G.user.permissions.canUpload));
+  document.getElementById('upload-area').style.display=canUp?'':'none';
 }
 
-// ─── Stats ────────────────────────────────────────────────────────────────────
-async function loadStats() {
-  try {
-    const res  = await fetch('/api/stats');
-    const data = await res.json();
-    const total = (data['850']||0)+(data['997']||0)+(data['855']||0)+(data['810']||0)+(data['catalog']||0);
-    document.getElementById('stat-850').textContent = data['850'] || 0;
-    document.getElementById('stat-997').textContent = data['997'] || 0;
-    document.getElementById('stat-855').textContent = data['855'] || 0;
-    document.getElementById('stat-810').textContent = data['810'] || 0;
-    document.getElementById('stat-cat').textContent = data['catalog'] || 0;
-    document.getElementById('nav-850').textContent = data['850'] || 0;
-    document.getElementById('nav-997').textContent = data['997'] || 0;
-    document.getElementById('nav-855').textContent = data['855'] || 0;
-    document.getElementById('nav-810').textContent = data['810'] || 0;
-    document.getElementById('nav-cat').textContent = data['catalog'] || 0;
-    document.getElementById('nav-count-total').textContent = total;
-  } catch {}
+function switchFolder(f){curFolder=f;updateFolderUI();loadFiles();}
+
+async function loadFiles(){
+  var c=document.getElementById('flist');
+  c.innerHTML='<div class="empty"><span class="pdots">Loading</span></div>';
+  try{
+    var r=await fetch('/api/vendors/'+curVendor+'/'+curFolder),files=await r.json();
+    if(!files.length){c.innerHTML='<div class="empty"><div style="font-size:26px;opacity:.3;margin-bottom:8px">&#9647;</div>No files in this folder</div>';return;}
+    var canDel=G.user&&(G.user.role==='admin'||(G.user.permissions&&G.user.permissions.canDelete));
+    var rows=files.map(function(f){
+      return '<tr><td><span class="fname">'+esc(f.name)+'</span></td>'+
+        '<td><span class="fsize">'+fmtSz(f.size)+'</span></td>'+
+        '<td><span class="fdate">'+fmtDt(f.modified)+'</span></td>'+
+        '<td><div class="acts">'+
+        '<button class="btn-dl" onclick="dlFile(\''+esc(f.name)+'\')">&#8595; Download</button>'+
+        (canDel?'<button class="btn-d" onclick="delFile(\''+esc(f.name)+'\')">&#10005;</button>':'')+
+        '</div></td></tr>';
+    }).join('');
+    c.innerHTML='<table class="ftable"><thead><tr><th>Filename</th><th>Size</th><th>Modified</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>';
+  }catch(e){c.innerHTML='<div class="empty" style="color:var(--danger)">Error loading files</div>';}
 }
 
-// ─── EDI Files ────────────────────────────────────────────────────────────────
-async function loadEdiFiles(type) {
-  const container = document.getElementById('edi-file-list');
-  container.innerHTML = '<div class="empty-state"><span class="progress-dots">Loading</span></div>';
-  try {
-    const res   = await fetch(`/api/edi/${type}`);
-    const files = await res.json();
-    if (!files.length) {
-      container.innerHTML = '<div class="empty-state"><div class="empty-icon">◫</div>No files in this mailbox</div>';
-      return;
-    }
-    let rows = files.map(f => `
-      <tr>
-        <td><span class="file-name">${escHtml(f.name)}</span></td>
-        <td><span class="file-size">${fmtSize(f.size)}</span></td>
-        <td><span class="file-date">${fmtDate(f.modified)}</span></td>
-        <td><div class="actions">
-          <button class="btn-dl" onclick="downloadFile('${type}','${escHtml(f.name)}')">↓ Download</button>
-          ${currentUser?.role === 'admin' ? `<button class="btn-danger" onclick="deleteFile('${type}','${escHtml(f.name)}')">✕</button>` : ''}
-        </div></td>
-      </tr>`).join('');
-    container.innerHTML = `<table class="file-table"><thead><tr><th>Filename</th><th>Size</th><th>Modified</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table>`;
-  } catch { container.innerHTML = '<div class="empty-state" style="color:var(--danger)">Error loading files</div>'; }
+async function uploadFile(input){
+  var file=input.files[0];if(!file)return;
+  var s=document.getElementById('upstatus');
+  s.textContent='Uploading '+file.name+'...';s.className='sb load';s.classList.remove('hidden');
+  var fd=new FormData();fd.append('file',file);
+  try{
+    var r=await fetch('/api/vendors/'+curVendor+'/'+curFolder+'/upload',{method:'POST',body:fd}),d=await r.json();
+    if(d.success){s.textContent='Uploaded: '+d.filename;s.className='sb ok';loadFiles();loadStats().then(function(){renderSidebar();renderDashboard();});}
+    else{s.textContent='Error: '+d.error;s.className='sb err';}
+  }catch(e){s.textContent='Upload failed';s.className='sb err';}
+  input.value='';
+}
+function dlFile(n){window.location.href='/api/vendors/'+curVendor+'/'+curFolder+'/download/'+encodeURIComponent(n);}
+async function delFile(n){
+  if(!confirm('Delete '+n+'?'))return;
+  await fetch('/api/vendors/'+curVendor+'/'+curFolder+'/'+encodeURIComponent(n),{method:'DELETE'});
+  loadFiles();loadStats().then(function(){renderSidebar();renderDashboard();});
 }
 
-async function uploadEdiFile(input) {
-  const file = input.files[0]; if (!file) return;
-  const status = document.getElementById('edi-upload-status');
-  status.textContent = `Uploading ${file.name}...`;
-  status.className = 'status-bar loading';
-  status.classList.remove('hidden');
-  const fd = new FormData(); fd.append('file', file);
-  try {
-    const res  = await fetch(`/api/edi/${currentEdiType}/upload`, { method: 'POST', body: fd });
-    const data = await res.json();
-    if (data.success) {
-      status.textContent = `✓ Uploaded: ${data.filename}`;
-      status.className = 'status-bar success';
-      loadEdiFiles(currentEdiType);
-      loadStats();
-    } else { status.textContent = '✗ Error: ' + data.error; status.className = 'status-bar error'; }
-  } catch { status.textContent = '✗ Upload failed'; status.className = 'status-bar error'; }
-  input.value = '';
+function openAddVendor(){document.getElementById('newvname').value='';document.getElementById('modal-addv').classList.add('open');}
+async function addVendor(){
+  var name=document.getElementById('newvname').value.trim();
+  if(!name)return alert('Please enter a vendor name');
+  var r=await fetch('/api/vendors',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:name})}),d=await r.json();
+  if(d.success){document.getElementById('modal-addv').classList.remove('open');await loadAll();if(document.getElementById('page-settings').style.display!=='none')renderSettingsVendors();}
+  else alert(d.error);
+}
+async function delVendor(id,name){
+  if(!confirm('Remove vendor "'+name+'"?\n\nThis removes it from the list but does NOT delete any files.'))return;
+  await fetch('/api/vendors/'+id,{method:'DELETE'});
+  if(curVendor===id){curVendor=null;showPage('dashboard');}
+  await loadAll();if(document.querySelector('#page-settings:not(.hidden)'))renderSettingsVendors();
 }
 
-function downloadFile(type, name) {
-  window.location.href = `/api/edi/${type}/download/${encodeURIComponent(name)}`;
+// CONVERTER
+function populateConvVendors(){
+  var s=document.getElementById('conv-vendor');
+  s.innerHTML='<option value="">-- Select vendor --</option>'+G.vendors.map(function(v){return '<option value="'+v.id+'">'+esc(v.name)+'</option>';}).join('');
+}
+function handleInvSelect(input){
+  G.selInvFile=input.files[0];if(!G.selInvFile)return;
+  document.getElementById('ifname').textContent=G.selInvFile.name;
+  document.getElementById('iinfo').classList.remove('hidden');
+  document.getElementById('preview').innerHTML='<span class="pph">// Ready. Click Convert to EDI 810.</span>';
+  document.getElementById('istatus').classList.add('hidden');
+  document.getElementById('btn810').classList.add('hidden');
+}
+async function convertInvoice(){
+  var vid=document.getElementById('conv-vendor').value;
+  if(!vid)return alert('Please select a vendor first');
+  if(!G.selInvFile)return alert('Please select an invoice file');
+  var s=document.getElementById('istatus'),p=document.getElementById('preview');
+  s.innerHTML='<span class="pdots">Converting invoice to EDI 810</span>';
+  s.className='sb load';s.classList.remove('hidden');
+  p.textContent='// Analyzing invoice...';
+  document.getElementById('btnconv').disabled=true;
+  var fd=new FormData();fd.append('invoice',G.selInvFile);fd.append('vendorId',vid);
+  try{
+    var r=await fetch('/api/convert',{method:'POST',body:fd}),d=await r.json();
+    if(d.success){
+      p.textContent=d.preview+(d.preview.length>=800?'\n\n// [truncated - full file saved]':'');
+      var vn=(G.vendors.find(function(v){return v.id===vid;})||{}).name||vid;
+      s.textContent='Generated: '+d.filename+' -> '+vn+'/Out';
+      s.className='sb ok';G.lastConvVendor=vid;
+      document.getElementById('btn810').classList.remove('hidden');
+      loadStats().then(function(){renderSidebar();renderDashboard();});
+    }else{p.textContent='// Error: '+(d.error||'Unknown');s.textContent='Conversion failed: '+(d.error||'Unknown');s.className='sb err';}
+  }catch(e){p.textContent='// Network error: '+e.message;s.textContent='Network error';s.className='sb err';}
+  document.getElementById('btnconv').disabled=false;
+}
+function goToOut(){if(G.lastConvVendor)openVF(G.lastConvVendor,'out');}
+
+// SETTINGS
+function renderSettingsVendors(){
+  var c=document.getElementById('settings-vendors-list');
+  if(!G.vendors.length){c.innerHTML='<div class="empty">No vendors yet</div>';return;}
+  c.innerHTML=G.vendors.map(function(v){
+    var s=G.stats[v.id]||{};
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border)">'+
+      '<div>'+
+      '<div style="font-size:13px;font-weight:600">'+esc(v.name)+'</div>'+
+      '<div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:3px">'+v.id+' &middot; '+
+      ['in','out','catalog','test'].map(function(f){return '<span class="tag '+f+'" style="margin-right:3px">'+FM[f].label+': '+(s[f]||0)+'</span>';}).join('')+
+      '</div></div>'+
+      '<div style="display:flex;gap:6px">'+
+      '<button class="btn-dl" onclick="openVF(\''+v.id+'\',\'in\')">Open</button>'+
+      '<button class="btn-d" onclick="delVendor(\''+v.id+'\',\''+esc(v.name)+'\')">Remove</button>'+
+      '</div></div>';
+  }).join('');
 }
 
-async function deleteFile(type, name) {
-  if (!confirm(`Delete ${name}?`)) return;
-  await fetch(`/api/edi/${type}/${encodeURIComponent(name)}`, { method: 'DELETE' });
-  loadEdiFiles(type); loadStats();
+async function renderSettingsUsers(){
+  var r=await fetch('/api/admin/users'),users=await r.json();
+  var c=document.getElementById('settings-users-list');
+  c.innerHTML=users.map(function(u){
+    var p=u.permissions||{folders:[],canUpload:false,canDelete:false};
+    var folders=p.folders||[];
+    return '<div class="user-perm-card">'+
+      '<div class="user-perm-header">'+
+      '<div><div class="user-perm-name">'+esc(u.name)+'</div>'+
+      '<div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:2px">@'+esc(u.username)+'</div></div>'+
+      '<div style="display:flex;gap:6px;align-items:center">'+
+      '<span class="user-perm-role">'+u.role+'</span>'+
+      (u.role!=='admin'?'<button class="btn-sm" onclick="openEditPerms('+u.id+',\''+esc(u.username)+'\')">Edit Perms</button>':'')+
+      '<button class="btn-d" onclick="delUser('+u.id+',\''+esc(u.username)+'\')">Remove</button>'+
+      '</div></div>'+
+      (u.role!=='admin'?
+        '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-top:4px">'+
+        ['in','out','catalog','test'].map(function(f){return folders.includes(f)?'<span class="tag '+f+'">'+FM[f].label+'</span>':'<span class="tag" style="opacity:.3">'+FM[f].label+'</span>';}).join('')+
+        (p.canUpload?'<span class="tag" style="border-color:var(--success);color:var(--success)">Upload</span>':'')+
+        (p.canDelete?'<span class="tag" style="border-color:var(--danger);color:var(--danger)">Delete</span>':'')+
+        '</div>':
+        '<div style="font-family:var(--mono);font-size:10px;color:var(--text3);margin-top:4px">Full access to all folders and actions</div>'
+      )+'</div>';
+  }).join('');
 }
 
-// ─── Invoice Converter ────────────────────────────────────────────────────────
-function handleInvoiceSelect(input) {
-  selectedInvoiceFile = input.files[0];
-  if (!selectedInvoiceFile) return;
-  document.getElementById('inv-filename').textContent = selectedInvoiceFile.name;
-  document.getElementById('inv-file-info').classList.remove('hidden');
-  document.getElementById('edi-preview').innerHTML = '<span class="preview-placeholder">// Ready to convert. Click the button above.</span>';
-  document.getElementById('inv-status').classList.add('hidden');
-  document.getElementById('btn-save-810').classList.add('hidden');
-}
-
-async function convertInvoice() {
-  if (!selectedInvoiceFile) { alert('Please select an invoice file first.'); return; }
-  const status  = document.getElementById('inv-status');
-  const preview = document.getElementById('edi-preview');
-  status.innerHTML = '<span class="progress-dots">Converting invoice to EDI 810</span>';
-  status.className = 'status-bar loading'; status.classList.remove('hidden');
-  preview.textContent = '// Analyzing invoice...';
-  document.getElementById('btn-convert').disabled = true;
-
-  const fd = new FormData(); fd.append('invoice', selectedInvoiceFile);
-  try {
-    const res  = await fetch('/api/invoice/convert', { method: 'POST', body: fd });
-    const data = await res.json();
-    if (data.success) {
-      preview.textContent = data.preview + (data.preview.length >= 800 ? '\n\n// [truncated — full file saved]' : '');
-      status.textContent = `✓ Generated: ${data.filename} — saved to 810/ mailbox`;
-      status.className = 'status-bar success';
-      document.getElementById('btn-save-810').classList.remove('hidden');
-      loadStats();
-    } else {
-      preview.textContent = '// Error: ' + (data.error || 'Unknown error');
-      status.textContent = '✗ Conversion failed: ' + (data.error || 'Unknown');
-      status.className = 'status-bar error';
-    }
-  } catch(e) {
-    preview.textContent = '// Connection error: ' + e.message;
-    status.textContent = '✗ Network error';
-    status.className = 'status-bar error';
-  }
-  document.getElementById('btn-convert').disabled = false;
-}
-
-function goTo810() { showPageEdi('810'); }
-
-// ─── Users ────────────────────────────────────────────────────────────────────
-async function loadUsers() {
-  const res   = await fetch('/api/admin/users');
-  const users = await res.json();
-  const tbody = document.getElementById('users-tbody');
-  tbody.innerHTML = users.map(u => `
-    <tr>
-      <td class="file-name">${escHtml(u.username)}</td>
-      <td>${escHtml(u.name)}</td>
-      <td><span style="font-family:var(--mono);font-size:10px;text-transform:uppercase;padding:2px 6px;background:var(--bg3);border:1px solid var(--border2)">${u.role}</span></td>
-      <td>${u.id != 1 ? `<button class="btn-danger" onclick="deleteUser(${u.id})">Remove</button>` : '—'}</td>
-    </tr>`).join('');
-}
-
-async function addUser() {
-  const body = {
-    username: document.getElementById('new-username').value.trim(),
-    name:     document.getElementById('new-name').value.trim(),
-    password: document.getElementById('new-password').value,
-    role:     document.getElementById('new-role').value,
-  };
-  if (!body.username || !body.password) return alert('Username and password required');
-  const res = await fetch('/api/admin/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
-  const data = await res.json();
-  if (data.success) {
-    document.getElementById('modal-add-user').classList.remove('open');
-    loadUsers();
-  } else { alert(data.error); }
-}
-
-async function deleteUser(id) {
-  if (!confirm('Remove this user?')) return;
-  await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
-  loadUsers();
-}
-
-// ─── Logs ─────────────────────────────────────────────────────────────────────
-async function loadLogs() {
-  const res  = await fetch('/api/admin/logs');
-  const logs = await res.json();
-  const tbody = document.getElementById('logs-tbody');
-  tbody.innerHTML = logs.map(l => {
-    const actionClass = l.action.includes('FAIL') || l.action.includes('DELETE') ? 'FAIL' : l.action.includes('LOGIN') ? 'LOGIN' : '';
-    return `<tr class="log-row">
-      <td>${new Date(l.ts).toLocaleString()}</td>
-      <td style="color:var(--accent2)">${escHtml(l.user)}</td>
-      <td><span class="log-action ${actionClass}">${escHtml(l.action)}</span></td>
-      <td style="color:var(--text2)">${escHtml(l.detail)}</td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="4" class="empty-state">No logs yet</td></tr>';
-}
-
-// ─── Drag & Drop ──────────────────────────────────────────────────────────────
-function setupDrop(zone, input) {
-  zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('dragover'); });
-  zone.addEventListener('dragleave', () => zone.classList.remove('dragover'));
-  zone.addEventListener('drop', e => {
-    e.preventDefault(); zone.classList.remove('dragover');
-    if (e.dataTransfer.files.length) { input.files = e.dataTransfer.files; input.dispatchEvent(new Event('change')); }
+function openEditPerms(uid,uname){
+  G.editPermUserId=uid;
+  document.getElementById('perms-username').textContent=uname;
+  fetch('/api/admin/users').then(function(r){return r.json();}).then(function(users){
+    var u=users.find(function(x){return x.id===uid;});
+    var p=u&&u.permissions?u.permissions:{folders:['in','out','catalog','test'],canUpload:false,canDelete:false};
+    ['in','out','catalog','test'].forEach(function(f){setPP('pp-'+f,(p.folders||[]).includes(f));});
+    setPP('pp-upload',!!p.canUpload);setPP('pp-delete',!!p.canDelete);
+    document.getElementById('modal-perms').classList.add('open');
   });
 }
-document.addEventListener('DOMContentLoaded', () => {
-  setupDrop(document.getElementById('edi-drop'),  document.getElementById('edi-file-input'));
-  setupDrop(document.getElementById('inv-drop'),  document.getElementById('inv-input'));
-});
+function setPP(id,on){var el=document.getElementById(id);if(!el)return;el.classList.toggle('on',on);el.querySelector('.perm-check').textContent=on?'\u2713':'';}
+function togglePerm(key){
+  var id='pp-'+key,el=document.getElementById(id),isOn=el.classList.contains('on');
+  setPP(id,!isOn);
+}
+async function savePerms(){
+  var folders=['in','out','catalog','test'].filter(function(f){return document.getElementById('pp-'+f).classList.contains('on');});
+  var canUpload=document.getElementById('pp-upload').classList.contains('on');
+  var canDelete=document.getElementById('pp-delete').classList.contains('on');
+  var r=await fetch('/api/admin/users/'+G.editPermUserId+'/permissions',{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({permissions:{folders:folders,canUpload:canUpload,canDelete:canDelete}})});
+  var d=await r.json();
+  if(d.success){document.getElementById('modal-perms').classList.remove('open');renderSettingsUsers();}
+  else alert(d.error);
+}
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
-function fmtSize(b) { if(b<1024)return b+'B'; if(b<1048576)return (b/1024).toFixed(1)+'KB'; return (b/1048576).toFixed(1)+'MB'; }
-function fmtDate(d) { return new Date(d).toLocaleString('en-US',{month:'2-digit',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false}); }
+// NEW USER modal perm toggles
+function updateNewUserPermUI(){
+  var role=document.getElementById('nu-role').value;
+  document.getElementById('nu-perms-area').style.display=role==='admin'?'none':'';
+}
+function toggleNewPerm(key){
+  var id='nup-'+key,el=document.getElementById(id),isOn=el.classList.contains('on');
+  el.classList.toggle('on',!isOn);el.querySelector('.perm-check').textContent=!isOn?'\u2713':'';
+}
+async function addUser(){
+  var role=document.getElementById('nu-role').value;
+  var permissions;
+  if(role==='admin'){permissions={folders:['in','out','catalog','test'],canUpload:true,canDelete:true};}
+  else{
+    var folders=['in','out','catalog','test'].filter(function(f){return document.getElementById('nup-'+f).classList.contains('on');});
+    permissions={folders:folders,canUpload:document.getElementById('nup-upload').classList.contains('on'),canDelete:document.getElementById('nup-delete').classList.contains('on')};
+  }
+  var body={username:document.getElementById('nu-username').value.trim(),name:document.getElementById('nu-name').value.trim(),password:document.getElementById('nu-password').value,role:role,permissions:permissions};
+  if(!body.username||!body.password)return alert('Username and password required');
+  var r=await fetch('/api/admin/users',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}),d=await r.json();
+  if(d.success){document.getElementById('modal-add-user').classList.remove('open');renderSettingsUsers();}
+  else alert(d.error);
+}
+async function delUser(id,username){
+  if(!confirm('Remove user "'+username+'"?'))return;
+  var r=await fetch('/api/admin/users/'+id,{method:'DELETE'}),d=await r.json();
+  if(d.error)alert(d.error);else renderSettingsUsers();
+}
+
+// LOGS
+async function loadLogs(){
+  var r=await fetch('/api/admin/logs'),logs=await r.json();
+  document.getElementById('logsbody').innerHTML=logs.map(function(l){
+    var c=l.action.includes('FAIL')||l.action.includes('DELETE')?'color:var(--danger)':l.action.includes('LOGIN')?'color:var(--success)':'color:var(--accent2)';
+    return '<tr><td style="font-family:var(--mono);font-size:11px;color:var(--text3)">'+new Date(l.ts).toLocaleString()+'</td>'+
+      '<td style="font-family:var(--mono);font-size:11px;color:var(--accent2)">'+esc(l.user)+'</td>'+
+      '<td><span style="font-family:var(--mono);font-size:10px;padding:2px 6px;background:var(--bg3);border:1px solid var(--border);'+c+'">'+esc(l.action)+'</span></td>'+
+      '<td style="font-size:12px;color:var(--text2)">'+esc(l.detail)+'</td></tr>';
+  }).join('')||'<tr><td colspan="4" class="empty">No logs yet</td></tr>';
+}
+
+// NAV
+function showPage(name){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.add('hidden');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  var pg=document.getElementById('page-'+name);if(pg)pg.classList.remove('hidden');
+  var nv=document.querySelector('[data-page="'+name+'"]');if(nv)nv.classList.add('active');
+  if(name==='settings'){renderSettingsVendors();renderSettingsUsers();}
+  if(name==='logs')loadLogs();
+  if(name==='dashboard')loadAll();
+}
+
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function fmtSz(b){if(b<1024)return b+'B';if(b<1048576)return (b/1024).toFixed(1)+'KB';return (b/1048576).toFixed(1)+'MB';}
+function fmtDt(d){return new Date(d).toLocaleString('en-US',{month:'2-digit',day:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit',hour12:false});}
 </script>
 </body>
 </html>
